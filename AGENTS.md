@@ -1,8 +1,8 @@
-# create-8004-agent
+# agentory-cli
 
 ## Repository
 
-This repository owns the AxLabs fork of the `create-8004-agent` npm CLI. It scaffolds ERC-8004 agent projects for EVM chains and Solana, with optional A2A, MCP, and x402 support. The AxLabs-specific path adds Neo X T4 registration through direct viem calls and supports inline or NeoFS-hosted registration metadata.
+This repository owns Agentory CLI, the AxLabs npm CLI for scaffolding ERC-8004 agent projects for EVM chains and Solana, with optional A2A, MCP, and x402 support. The AxLabs-specific path adds Neo X T4 registration through direct viem calls and supports inline or NeoFS-hosted registration metadata.
 
 The TypeScript ESM CLI starts in `src/index.ts`. Interactive and JSON-configured runs produce the same `WizardAnswers` model through `src/wizard.ts` and `src/generate-from-config.ts`; `src/generator.ts` then routes to the generic EVM, Monad, Neo X, or Solana templates in `src/templates/`. Shared A2A and MCP generators are applied after chain-specific generation. `src/neox/` contains the Neo X library copied into generated Neo X projects, including preflight, resumable registration, metadata storage, verification, and state handling.
 

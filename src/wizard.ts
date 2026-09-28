@@ -113,7 +113,7 @@ export async function runWizard(): Promise<WizardAnswers> {
             type: "input",
             name: "agentDescription",
             message: "Agent description:",
-            default: "test agent created with create-8004-agent",
+            default: "test agent created with Agentory",
         },
         {
             type: "input",

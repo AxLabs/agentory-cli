@@ -1,4 +1,4 @@
-# create-8004-agent
+# Agentory CLI
 
 CLI tool to scaffold [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) compliant AI agents with A2A, MCP, and x402 payment support.
 
@@ -41,14 +41,14 @@ Before using the generator, ensure you have:
 This AxLabs Neo X fork is not currently published as a separate npm package. To run the fork deterministically:
 
 ```bash
-git clone https://github.com/AxLabs/create-8004-agent.git
-cd create-8004-agent
+git clone https://github.com/AxLabs/agentory-cli.git
+cd agentory-cli
 npm ci
 npm run build
 node dist/index.js
 ```
 
-The wizard will guide you through creating your agent. Do not use `npx create-8004-agent` for the Neo X demo; that package may resolve to upstream code without these changes.
+The wizard will guide you through creating your agent. Agentory CLI is not yet published to npm, so run it from this checkout for the Neo X demo.
 If you want 4mica-powered x402 payments, choose a supported chain (Ethereum Sepolia or Polygon Amoy), enable `x402 payments`, and select `4mica` as the provider when prompted.
 
 Noninteractive generation (same generator as the wizard):

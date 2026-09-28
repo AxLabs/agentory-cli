@@ -1,10 +1,10 @@
 {
-    "name": "create-8004-agent",
+    "name": "agentory-cli",
     "version": "1.4.2",
     "description": "CLI to scaffold ERC-8004 compliant AI agents with A2A, MCP, and x402 support",
     "type": "module",
     "bin": {
-        "create-8004-agent": "dist/index.js"
+        "agentory": "dist/index.js"
     },
     "files": [
         "dist"
@@ -37,12 +37,12 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/AxLabs/create-8004-agent.git"
+        "url": "git+https://github.com/AxLabs/agentory-cli.git"
     },
     "bugs": {
-        "url": "https://github.com/AxLabs/create-8004-agent/issues"
+        "url": "https://github.com/AxLabs/agentory-cli/issues"
     },
-    "homepage": "https://github.com/AxLabs/create-8004-agent#readme",
+    "homepage": "https://github.com/AxLabs/agentory-cli#readme",
     "dependencies": {
         "@4mica/sdk": "^0.5.3",
         "@solana/web3.js": "^1.98.0",

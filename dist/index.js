@@ -30,11 +30,11 @@ function parseArgs(argv) {
     return args;
 }
 function printHelp() {
-    console.log(`create-8004-agent
+    console.log(`agentory
 
 Usage:
-  create-8004-agent
-  create-8004-agent --config <file.json> [--skip-install]
+  agentory
+  agentory --config <file.json> [--skip-install]
 
 The --config path uses the same generator as the interactive wizard.
 `);

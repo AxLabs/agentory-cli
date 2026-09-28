@@ -5,8 +5,8 @@ This runbook starts from a clean checkout of the AxLabs fork. The fork is not as
 ## 1. Install and build the CLI
 
 ```bash
-git clone https://github.com/AxLabs/create-8004-agent.git
-cd create-8004-agent
+git clone https://github.com/AxLabs/agentory-cli.git
+cd agentory-cli
 npm ci
 npm run build
 ```
