@@ -161,7 +161,7 @@ async function generateFromAnswers(answers: WizardAnswers, skipInstall: boolean)
 async function main() {
     console.log(chalk.bold.cyan("\n🤖 8004 Agent Generator\n"));
     console.log(chalk.gray("Create a trustless AI agent with A2A, MCP, and x402 support\n"));
-    console.log(chalk.gray("Supports EVM chains (including Neo X T4) and Solana\n"));
+    console.log(chalk.gray("Supports EVM chains, including Neo X T4\n"));
 
     try {
         const { configPath, skipInstall } = parseArgs(process.argv.slice(2));

@@ -2,7 +2,7 @@
 
 CLI tool to scaffold [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) compliant AI agents with A2A, MCP, and x402 payment support.
 
-**Supports both EVM chains and Solana.**
+**Supports EVM chains, including Neo X T4.**
 
 ## Table of Contents
 - [What is ERC-8004?](#what-is-erc-8004)
@@ -11,6 +11,7 @@ CLI tool to scaffold [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) complia
 - [What Gets Generated](#what-gets-generated)
 - [Wizard Options](#wizard-options)
 - [Supported Chains](#supported-chains)
+- [Experimental Solana Groundwork](#experimental-solana-groundwork)
 - [Generated Project Usage](#generated-project-usage)
   - [1. Configure Environment](#1-configure-environment)
   - [2. Register Agent On-Chain](#2-register-agent-on-chain)
@@ -34,7 +35,7 @@ ERC-8004 is a protocol for discovering and trusting AI agents across organizatio
 Before using the generator, ensure you have:
 - **Node.js**: Version 18.0.0 or higher.
 - **Package Manager**: npm, pnpm, or bun.
-- **Wallet**: An EVM or Solana wallet (the tool can generate one for you if needed).
+- **Wallet**: An EVM wallet (the tool can generate one for you if needed).
 
 ## Quick Start
 
@@ -85,12 +86,12 @@ my-agent/
 | **Agent name**        | Your agent's name                                                                                                           |
 | **Agent description** | What your agent does                                                                                                           |
 | **Agent image**       | URL to your agent's image/logo                                                                                                           |
-| **Agent wallet**      | EVM or Solana address (leave empty to auto-generate)                                                                                                 |
+| **Agent wallet**      | EVM address (leave empty to auto-generate)                                                                                                 |
 | **A2A server**        | Enable agent-to-agent communication                                                                                                  |
 | **A2A streaming**     | Enable Server-Sent Events (SSE) for streaming responses                                                                                                      |
 | **MCP server**        | Enable Model Context Protocol tools                                                                                                          |
 | **x402 payments**     | [x402](https://x402.org) USDC micropayments (Base, Polygon)                                                                                                       |
-| **Chain**             | EVM: Ethereum, Base, Polygon, Monad (mainnet + testnets) / Solana: Devnet                                                                                                         |
+| **Chain**             | One of the supported EVM networks listed below                                                                                                         |
 | **Trust models**      | reputation, crypto-economic, tee-attestation                                                                                                |
 
 ## Supported Chains
@@ -107,11 +108,9 @@ my-agent/
 | Avalanche Fuji     | Via agent0-sdk (chainId 43113)               | ✅ Available |
 | Neo X T4           | `0x8004A856a396D08d31E597a867B1D8273901e641` | ✅ Direct viem (no Agent0 SDK, no x402) |
 
-### Solana
+## Experimental Solana Groundwork
 
-| Network | Program ID                                     |
-| ------- | ---------------------------------------------- |
-| Devnet  | `HvF3JqhahcX7JfhbDRYYCJ7S3f6nJdrqu5yi9shyTREp` |
+The repository retains a configuration-only Solana Devnet implementation as groundwork for potential future support. It is not currently a supported Agentory CLI target, is not exposed through the interactive wizard, and has not been validated end-to-end sufficiently for normal use. See the [Solana support assessment](docs/solana-support-research.md) for the current technical status.
 
 ## Generated Project Usage
 
@@ -135,7 +134,6 @@ PINATA_JWT=your_pinata_jwt        # If using IPFS storage (requires pinJSONToIPF
 **Auto-generated wallet:** If you left the wallet address empty, a new wallet was generated and the private key is already in `.env`. **Back up your .env file** and **fund the wallet with testnet tokens** before registering.
 
 -   **EVM chains:** Fund with testnet ETH (use faucets for Sepolia, Base Sepolia, etc.)
--   **Solana Devnet:** Fund with devnet SOL via `solana airdrop` or faucets
 
 **Pinata JWT:** Create an API key at [pinata.cloud](https://pinata.cloud) with `pinJSONToIPFS` scope for public IPFS pinning.
 
@@ -148,8 +146,6 @@ npm run register
 **EVM chains:** Uploads metadata to IPFS and mints an NFT on the Identity Registry.
 
 **Neo X T4:** Uses direct viem calls. `npm run preflight` is read-only. `npm run register` calls parameterless `register()`, then publishes metadata through either the default inline data URI backend or a configured NeoFS REST gateway before calling `setAgentURI`. No Pinata or OpenAI key is required. Resume is automatic after minting and after a successful NeoFS upload. Explorer: [xt4scan](https://xt4scan.ngd.network). There is no 8004scan route for Neo X. See the [Neo X T4 demo runbook](docs/neox-t4-demo.md).
-
-**Solana:** Validates metadata using `buildRegistrationFileJson()`, uploads to IPFS, and mints a Metaplex Core NFT via the 8004 program.
 
 After registration on supported Agent0 chains, view your agent on [8004scan.io](https://www.8004scan.io/).
 
@@ -336,7 +332,7 @@ If `TEST_PAYER_PRIVATE_KEY` is not set, x402 paid request tests will be skipped 
 -   [x402 Protocol](https://x402.org)
 -   [PayAI Facilitator](https://payai.network) - x402 facilitator for Base, Polygon
 -   [4mica Facilitator](https://x402.4mica.xyz) - x402 facilitator for Ethereum Sepolia, Polygon Amoy
--   [8004-solana SDK](https://github.com/8004-ai/8004-solana) - Solana implementation
+-   [8004-solana SDK](https://github.com/8004-ai/8004-solana) - Upstream SDK referenced by the retained experimental Solana groundwork
 
 ## License
 
