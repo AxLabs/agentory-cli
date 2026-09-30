@@ -138,6 +138,12 @@ describe("Neo X T4 generator routing", () => {
             agentName: "NeoFS fixture",
             metadataStorage: "neofs",
         }));
+        await generateProject(neoxAnswers({
+            projectDir: path.join(OUTPUT_DIR, "external-uri-fixture"),
+            agentName: "External URI fixture",
+            metadataStorage: "external",
+            agentURI: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3fte3pr7x2v5w3x5v5q4y6x4a/agent.json",
+        }));
     });
 
     it("generates a viem registration path instead of agent0-sdk", async () => {
@@ -193,6 +199,20 @@ describe("Neo X T4 generator routing", () => {
         expect(readme).toContain("publishes metadata to NeoFS");
         expect(readme).toContain('change it from `"neofs"` to `"inline"`');
         expect(readme).not.toMatch(/NEOFS_BEARER_TOKEN=[^\s#]+/);
+    });
+
+    it("generates a provider-neutral external URI path without storage credentials", async () => {
+        const projectDir = path.join(OUTPUT_DIR, "external-uri-fixture");
+        const envExample = await fs.readFile(path.join(projectDir, ".env.example"), "utf8");
+        const config = await fs.readFile(path.join(projectDir, "src/agent-config.ts"), "utf8");
+        const readme = await fs.readFile(path.join(projectDir, "README.md"), "utf8");
+
+        expect(envExample).not.toContain("PINATA");
+        expect(envExample).not.toContain("NEOFS_");
+        expect(config).toContain('metadataStorage: "external"');
+        expect(config).toContain("ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3fte3pr7x2v5w3x5v5q4y6x4a/agent.json");
+        expect(readme).toContain("registered exactly as supplied");
+        expect(readme).toContain("does not fetch, upload, normalize, rewrite, or remotely verify");
     });
 
     it(

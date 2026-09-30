@@ -38,14 +38,14 @@ export async function runNeoxRegistrationCli(config, argv = process.argv.slice(2
         ? buildRegistrationMetadata(config, parseAgentId(state.agentId), registry)
         : undefined;
     const needsPublication = !isComplete(state) &&
-        (!intendedMetadata || !canReuseMetadataPublication(state, intendedMetadata, backend));
+        (!intendedMetadata || !canReuseMetadataPublication(state, intendedMetadata, backend, config.agentURI));
     // Preflight validates selected storage without uploading. Registration validates
     // before minting, while completed or matching resumable publications need no upload credentials.
     const storagePreflightUri = command === "preflight" || command === "dry-run" || (command === "register" && needsPublication)
         ? uriForStoragePreflight(config)
         : undefined;
     const uriForEstimate = hasMinted(state)
-        ? canReuseMetadataPublication(state, intendedMetadata, backend)
+        ? canReuseMetadataPublication(state, intendedMetadata, backend, config.agentURI)
             ? state.agentURI
             : storagePreflightUri ?? encodeMetadataDataUri(intendedMetadata)
         : undefined;
@@ -110,8 +110,13 @@ export async function runNeoxRegistrationCli(config, argv = process.argv.slice(2
         console.log(`  owner:        ${verification.owner}`);
         console.log(`  agentWallet:  ${verification.agentWallet}`);
         console.log(`  metadata:     ${state.metadataStorage?.backend ?? backend}`);
-        console.log(`  services:     ${verification.decodedMetadata.services.length} declared`);
-        for (const service of verification.decodedMetadata.services) {
+        if (!verification.decodedMetadata) {
+            console.log("  metadata:     URI verified on-chain; external contents were not fetched");
+        }
+        else {
+            console.log(`  services:     ${verification.decodedMetadata.services.length} declared`);
+        }
+        for (const service of verification.decodedMetadata?.services ?? []) {
             const extras = [
                 service.version ? `v${service.version}` : null,
                 service.skills?.length ? `${service.skills.length} skill(s)` : null,

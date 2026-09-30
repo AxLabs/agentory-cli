@@ -3,6 +3,7 @@ import path from "node:path";
 import type { WizardAnswers } from "./wizard.js";
 import { CHAINS, type ChainKey, type TrustModel } from "./config.js";
 import { isSolanaChain, type SolanaChainKey } from "./config-solana.js";
+import { assertRegistrationMetadataUri } from "./neox/metadata.js";
 
 export interface GenerateConfigFile {
     projectDir: string;
@@ -16,7 +17,8 @@ export interface GenerateConfigFile {
     agentWallet?: string;
     generatedPrivateKey?: string;
     skipInstall?: boolean;
-    metadataStorage?: "inline" | "neofs";
+    metadataStorage?: "inline" | "neofs" | "external";
+    agentURI?: string;
     a2aEndpoint?: string;
     mcpEndpoint?: string;
     oasfEndpoint?: string;
@@ -31,6 +33,13 @@ export function wizardAnswersFromConfig(raw: GenerateConfigFile): WizardAnswers 
     if (!isSolanaChain(raw.chain) && !(raw.chain in CHAINS)) {
         throw new Error(`Unknown chain: ${raw.chain}`);
     }
+    const metadataStorage = raw.metadataStorage ?? (raw.agentURI ? "external" : "inline");
+    const agentURI = metadataStorage === "external"
+        ? assertRegistrationMetadataUri(raw.agentURI)
+        : undefined;
+    if (raw.agentURI && metadataStorage !== "external") {
+        throw new Error('agentURI requires metadataStorage: "external"');
+    }
     return {
         projectDir: raw.projectDir,
         agentName: raw.agentName,
@@ -42,7 +51,8 @@ export function wizardAnswersFromConfig(raw: GenerateConfigFile): WizardAnswers 
         trustModels: raw.trustModels ?? [],
         agentWallet: raw.agentWallet ?? "",
         generatedPrivateKey: raw.generatedPrivateKey,
-        metadataStorage: raw.metadataStorage ?? "inline",
+        metadataStorage,
+        agentURI,
         a2aEndpoint: raw.a2aEndpoint,
         mcpEndpoint: raw.mcpEndpoint,
         oasfEndpoint: raw.oasfEndpoint,

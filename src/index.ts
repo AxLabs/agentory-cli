@@ -78,7 +78,9 @@ function printNextSteps(answers: WizardAnswers, isSolana: boolean, neox: boolean
             console.log(chalk.gray(`   - Add ${isSolana ? "SOLANA_PRIVATE_KEY" : "PRIVATE_KEY"}`));
         }
         console.log(chalk.gray("   - Add OPENAI_API_KEY"));
-        console.log(chalk.gray("   - Add PINATA_JWT (get one at pinata.cloud)"));
+        if (answers.metadataStorage !== "external") {
+            console.log(chalk.gray("   - Add PINATA_JWT (get one at pinata.cloud)"));
+        }
     }
     console.log("");
     step++;

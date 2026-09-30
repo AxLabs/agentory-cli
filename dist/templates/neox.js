@@ -134,7 +134,7 @@ import { NEOX_T4_IDENTITY_REGISTRY } from "./neox/constants.js";
 
 /**
  * Edit \`services[].endpoint\` (and optional OASF fields) before \`npm run register\`.
- * These values are written into ERC-8004 registration-v1 metadata at setAgentURI time.
+ * ${answers.metadataStorage === "external" ? "Keep these declarations aligned with your user-managed metadata; the CLI does not rewrite its contents." : "These values are written into ERC-8004 registration-v1 metadata at setAgentURI time."}
  */
 export const AGENT_PROJECT_CONFIG: AgentProjectConfig = {
   name: ${JSON.stringify(answers.agentName)},
@@ -143,7 +143,8 @@ export const AGENT_PROJECT_CONFIG: AgentProjectConfig = {
   projectId: ${JSON.stringify(projectId)},
   registry: NEOX_T4_IDENTITY_REGISTRY,
   metadataStorage: ${JSON.stringify(answers.metadataStorage ?? "inline")},
-${servicesBlock}};
+${answers.metadataStorage === "external" ? `  agentURI: ${JSON.stringify(answers.agentURI)},
+` : ""}${servicesBlock}};
 `;
 }
 export function generateNeoxRegisterEntry() {
@@ -172,6 +173,7 @@ export function generateNeoxReadme(answers, chain) {
     const hasA2A = hasFeature(answers, "a2a");
     const hasMCP = hasFeature(answers, "mcp");
     const neofs = answers.metadataStorage === "neofs";
+    const external = answers.metadataStorage === "external";
     const hasOasfTaxonomy = (answers.skills?.length ?? 0) > 0 || (answers.domains?.length ?? 0) > 0;
     return `# ${answers.agentName}
 
@@ -217,7 +219,12 @@ NEOFS_BEARER_TOKEN= # optional for a public-write container
 
 The REST gateway controls uploads. The public gateway must serve unauthenticated HTTPS reads. Never commit the bearer token.
 The backend is selected by \`metadataStorage\` in \`src/agent-config.ts\`. To fall back before registration completes, change it from \`"neofs"\` to \`"inline"\`; NeoFS environment variables are then ignored.
-` : `Metadata uses the inline data-URI backend, so no external storage configuration is required.
+` : external ? `This project uses your existing registration metadata URI:
+
+\`${answers.agentURI}\`
+
+The URI is registered exactly as supplied. The CLI validates its syntax locally but does not fetch, upload, normalize, rewrite, or remotely verify the referenced contents. You are responsible for public readability, correct ERC-8004 metadata, and availability. Treat metadata as immutable: publish a new versioned URI when contents change rather than mutating content at the registered URI.
+` : `Metadata uses the inline data-URI compatibility backend, so no external storage configuration is required.
 `}
 
 ## 3. Fund the signer with testnet GAS
@@ -243,17 +250,17 @@ npm run register
 This:
 
 1. Calls parameterless \`register()\` and decodes \`Registered\` from that receipt (agent ID 0 is valid).
-2. ${neofs ? "Uploads compact registration-v1 JSON to NeoFS, reads it back through the public gateway, and persists the object IDs." : "Encodes compact registration-v1 metadata as a `data:application/json;base64,` URI."}
+2. ${neofs ? "Uploads compact registration-v1 JSON to NeoFS, reads it back through the public gateway, and persists the object IDs." : external ? "Acquires your existing metadata URI without any upload or storage-provider API call and persists it unchanged." : "Encodes compact registration-v1 metadata as a `data:application/json;base64,` URI."}
 3. Calls \`setAgentURI(agentId, uri)\`.
 4. Persists transaction hashes immediately and resumes metadata publication if minting already succeeded.
 5. Refuses to mint a second identity once this project has completed.
 
-Selected capabilities are declared under \`services\` in registration-v1 metadata (see \`src/agent-config.ts\`).
+${external ? "Selected capabilities must be declared in the user-managed registration metadata. Keep them aligned with `services` in `src/agent-config.ts`; the CLI does not add or rewrite them." : "Selected capabilities are declared under `services` in registration-v1 metadata (see `src/agent-config.ts`)."}
 Endpoints are self-declared — deploy or configure the real public URLs before registering.
 After Agentory indexes the registration, find and inspect the agent in [Agentory staging](https://staging.agentory.xyz).
 The Neo X T4 explorer confirms transactions; Agentory staging confirms that the agent has been indexed for discovery.
 
-Compact metadata also sets \`active: false\`, \`x402Support: false\`, and \`supportedTrust: []\`.
+${external ? "Your user-managed metadata is responsible for all ERC-8004 fields and the exact registration reference." : "Compact metadata also sets `active: false`, `x402Support: false`, and `supportedTrust: []`."}
 
 ## 6. Verify
 
@@ -263,7 +270,7 @@ npm run verify
 
 Reads \`ownerOf\`, \`tokenURI\`, and \`getAgentWallet\`, checks registration metadata (including \`services\`),
 then writes secret-free \`registration-result.json\`.
-For HTTP(S) URIs it retrieves the metadata before validating the exact Neo X registration reference and service declarations.
+For CLI-published HTTP(S) URIs it retrieves the metadata before validating the exact Neo X registration reference and service declarations. User-provided URIs are verified for exact on-chain equality without fetching their contents.
 
 ## ERC-8004 service endpoints
 

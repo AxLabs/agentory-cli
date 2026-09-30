@@ -7,6 +7,7 @@ import bs58 from "bs58";
 import { CHAINS, TRUST_MODELS } from "./config.js";
 import { isSolanaChain } from "./config-solana.js";
 import { isNeoxChain } from "./neox/constants.js";
+import { validateRegistrationMetadataUri } from "./neox/metadata.js";
 import { defaultA2aAgentCardEndpoint, parseOasfTaxonomyInput, validateOptionalRegistrationServiceEndpoint, validateRegistrationServiceEndpoint, } from "./neox/services.js";
 function getAvailableDir(baseDir) {
     if (baseDir === ".")
@@ -27,6 +28,9 @@ function getAvailableDir(baseDir) {
 export { isSolanaChain } from "./config-solana.js";
 // Helper getters for cleaner access
 export const hasFeature = (answers, feature) => answers.features.includes(feature);
+export const NORMAL_METADATA_STORAGE_CHOICES = [
+    { name: "Use my own URI", value: "external" },
+];
 function getX402Providers(chainKey) {
     if (!chainKey || isSolanaChain(chainKey))
         return [];
@@ -117,13 +121,19 @@ export async function runWizard() {
         {
             type: "list",
             name: "metadataStorage",
-            message: "Registration metadata storage (Neo X T4):",
-            choices: [
-                { name: "Inline data URI (no external storage required)", value: "inline" },
-                { name: "NeoFS REST gateway (requires gateway and container configuration)", value: "neofs" },
-            ],
-            default: "inline",
-            when: (ans) => ans.chain === "neox-t4",
+            message: "Registration metadata:",
+            choices: NORMAL_METADATA_STORAGE_CHOICES,
+            default: "external",
+        },
+        {
+            type: "input",
+            name: "agentURI",
+            message: "Your existing registration metadata URI:",
+            when: (ans) => ans.metadataStorage === "external",
+            validate: (input) => {
+                const result = validateRegistrationMetadataUri(input);
+                return result.ok || result.message;
+            },
         },
         {
             type: "checkbox",
@@ -280,7 +290,8 @@ export async function runWizard() {
         agentWallet,
         generatedPrivateKey,
         x402Provider,
-        metadataStorage: answers.metadataStorage ?? "inline",
+        metadataStorage: answers.metadataStorage ?? "external",
+        agentURI: answers.agentURI,
         // Default to false if A2A not selected (question was skipped)
         a2aStreaming: answers.a2aStreaming ?? false,
         a2aEndpoint: answers.a2aEndpoint,

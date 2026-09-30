@@ -6,7 +6,7 @@ import { buildRegistrationMetadata, decodeMetadataDataUri, metadataEquals, parse
 import { formatPreflight, runPreflight } from "./preflight.js";
 import { hasMinted, isComplete, persistMinted, persistMetadataPublished, persistPendingTx, persistRevertedPending, persistUriSet, } from "./state.js";
 import { InlineMetadataStorage } from "./storage/inline.js";
-export function canReuseMetadataPublication(state, metadata, configuredBackend) {
+export function canReuseMetadataPublication(state, metadata, configuredBackend, configuredAgentURI) {
     if (!state.metadata ||
         !state.metadataStorage ||
         !state.agentURI ||
@@ -14,6 +14,9 @@ export function canReuseMetadataPublication(state, metadata, configuredBackend) 
         state.metadataStorage.uri !== state.agentURI ||
         !metadataEquals(state.metadata, metadata)) {
         return false;
+    }
+    if (configuredBackend === "external") {
+        return state.agentURI === configuredAgentURI;
     }
     if (state.metadataStorage.backend === "inline") {
         try {
@@ -32,6 +35,9 @@ function storageForPublication(deps) {
     }
     if (configuredBackend === "neofs" && !deps.storage) {
         throw new Error("NeoFS metadata storage dependency is required when metadataStorage is \"neofs\"");
+    }
+    if (configuredBackend === "external" && !deps.storage) {
+        throw new Error("User-provided metadata URI dependency is required when metadataStorage is \"external\"");
     }
     return deps.storage ?? new InlineMetadataStorage();
 }
@@ -77,7 +83,7 @@ export async function reconcilePending(deps, state) {
     const agentId = parseAgentId(state.agentId ?? "0");
     const updated = decodeURIUpdatedFromReceipt(receipt, deps.registry, agentId);
     const intendedMetadata = buildRegistrationMetadata(deps.config, agentId, deps.registry);
-    const publicationIsCurrent = canReuseMetadataPublication({ ...state, agentURI: updated.newURI }, intendedMetadata, deps.config.metadataStorage ?? "inline");
+    const publicationIsCurrent = canReuseMetadataPublication({ ...state, agentURI: updated.newURI }, intendedMetadata, deps.config.metadataStorage ?? "inline", deps.config.agentURI);
     return persistUriSet(deps.projectDir, state, {
         agentURI: updated.newURI,
         receipt,
@@ -148,13 +154,13 @@ export async function registerOrResume(deps, state) {
         : undefined;
     if (isComplete(current)) {
         if (!metadata ||
-            !canReuseMetadataPublication(current, metadata, deps.config.metadataStorage ?? "inline")) {
+            !canReuseMetadataPublication(current, metadata, deps.config.metadataStorage ?? "inline", deps.config.agentURI)) {
             throw new Error(`Registration is already complete for agentId ${current.agentId}, but current canonical metadata differs from the published URI. This command does not update completed registrations.`);
         }
         console.log(`Registration already complete for agentId ${current.agentId}. Refusing to mint another identity.`);
         return current;
     }
-    if (!hasMinted(current) && deps.config.metadataStorage === "neofs") {
+    if (!hasMinted(current) && deps.config.metadataStorage !== undefined && deps.config.metadataStorage !== "inline") {
         storageForPublication(deps);
     }
     if (!hasMinted(current)) {
@@ -177,7 +183,7 @@ export async function registerOrResume(deps, state) {
     if (!isComplete(current)) {
         const agentId = parseAgentId(current.agentId);
         metadata ??= buildRegistrationMetadata(deps.config, agentId, deps.registry);
-        if (!canReuseMetadataPublication(current, metadata, deps.config.metadataStorage ?? "inline")) {
+        if (!canReuseMetadataPublication(current, metadata, deps.config.metadataStorage ?? "inline", deps.config.agentURI)) {
             const storage = storageForPublication(deps);
             const publication = await storage.publish({
                 metadata,

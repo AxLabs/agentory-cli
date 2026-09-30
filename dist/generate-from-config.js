@@ -2,12 +2,20 @@ import fs from "node:fs";
 import path from "node:path";
 import { CHAINS } from "./config.js";
 import { isSolanaChain } from "./config-solana.js";
+import { assertRegistrationMetadataUri } from "./neox/metadata.js";
 export function wizardAnswersFromConfig(raw) {
     if (!raw.projectDir || !raw.agentName || !raw.agentDescription || !raw.chain) {
         throw new Error("Config requires projectDir, agentName, agentDescription, and chain");
     }
     if (!isSolanaChain(raw.chain) && !(raw.chain in CHAINS)) {
         throw new Error(`Unknown chain: ${raw.chain}`);
+    }
+    const metadataStorage = raw.metadataStorage ?? (raw.agentURI ? "external" : "inline");
+    const agentURI = metadataStorage === "external"
+        ? assertRegistrationMetadataUri(raw.agentURI)
+        : undefined;
+    if (raw.agentURI && metadataStorage !== "external") {
+        throw new Error('agentURI requires metadataStorage: "external"');
     }
     return {
         projectDir: raw.projectDir,
@@ -20,7 +28,8 @@ export function wizardAnswersFromConfig(raw) {
         trustModels: raw.trustModels ?? [],
         agentWallet: raw.agentWallet ?? "",
         generatedPrivateKey: raw.generatedPrivateKey,
-        metadataStorage: raw.metadataStorage ?? "inline",
+        metadataStorage,
+        agentURI,
         a2aEndpoint: raw.a2aEndpoint,
         mcpEndpoint: raw.mcpEndpoint,
         oasfEndpoint: raw.oasfEndpoint,

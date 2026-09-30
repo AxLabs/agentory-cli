@@ -99,22 +99,24 @@ npm run verify
 ```
 
 - `preflight` checks the T4 chain, registry, signer balance, and next transaction without writing.
-- `register` mints the identity, publishes registration metadata, and sets its URI.
-- `verify` reads the identity and metadata back and writes a secret-free result file.
+- `register` mints the identity, acquires the configured metadata URI, and sets it on-chain.
+- `verify` reads the identity and URI back and writes a secret-free result file. CLI-published metadata is also read back; user-provided metadata remains under the user's control and is not fetched.
 
 Fund the signing wallet with testnet GAS from the [Neo X T4 faucet](https://neoxfaucet.ngd.network/). See the [Neo X T4 demo runbook](docs/neox-t4-demo.md) for the complete staging workflow.
 
 ### Registration metadata storage today
 
-Storage behavior is currently target-specific:
+The normal CLI path is **Use my own URI**. Supply an existing `https://`, `ipfs://`, or `neofs:` registration metadata URI; the CLI validates its syntax and registers it unchanged without uploading or requesting storage-provider credentials.
 
-| Target | Current behavior |
+| Target | User-provided URI behavior |
 | --- | --- |
-| Neo X T4 | Inline data URI by default. A direct NeoFS integration is available as an advanced acceptance/infrastructure path and requires an existing container and gateway configuration. |
-| Other EVM targets | Registration metadata is uploaded to IPFS through Pinata and requires `PINATA_JWT`. |
-| Solana groundwork | Uses Pinata/IPFS, but Solana is not a supported Agentory CLI target. |
+| Neo X T4 | The resumable flow persists the exact URI and passes it to `setAgentURI` after minting. |
+| Other EVM targets | The exact URI is passed to the existing user-signed ERC-8004 registration call. |
+| Solana groundwork | Retains its experimental Pinata/IPFS flow; Solana is not a supported interactive Agentory CLI target. |
 
-The direct NeoFS path is not the intended production managed-storage experience. Do not expose its container credentials or bearer token to end users or generated applications outside the controlled acceptance path.
+You are responsible for the referenced metadata's correctness, public readability, and availability. Treat published metadata as immutable and use a new versioned URI for changed content. Syntax validation does not prove that remote content is reachable or semantically valid.
+
+Existing inline, Pinata/IPFS, and direct NeoFS internals remain available for compatibility and tests, but they are not separate normal wizard choices. The direct NeoFS path is not a managed-storage experience; do not expose its container credentials or bearer token to end users or generated applications outside the controlled acceptance path.
 
 ### Other EVM targets
 
@@ -124,13 +126,13 @@ Generated projects for the other EVM targets provide:
 npm run register
 ```
 
-Follow the generated README for the selected network's wallet funding and environment requirements. These projects currently require a signing key, native gas token, and Pinata credentials. They do not provide the Neo X-specific `preflight` and `verify` commands.
+Follow the generated README for the selected network's wallet funding and environment requirements. The user-provided URI path requires a signing key and native gas token, but no Pinata or other storage-provider credential. These projects do not provide the Neo X-specific `preflight` and `verify` commands.
 
 The CLI does not currently provide one safe, uniform command for updating an already registered identity. Do not assume that rerunning `npm run register` updates an existing identity; behavior differs by generated target.
 
 ## Verifying and Discovering an Agent
 
-For Neo X T4, `npm run verify` confirms the on-chain owner, registry-reported agent wallet, metadata URI, registration reference, and declared services. Transaction links use the [Neo X T4 explorer](https://xt4scan.ngd.network/).
+For Neo X T4, `npm run verify` confirms the on-chain owner, registry-reported agent wallet, and exact metadata URI. For CLI-published metadata it also validates the registration reference and declared services; user-provided metadata contents are not fetched or inferred to be valid. Transaction links use the [Neo X T4 explorer](https://xt4scan.ngd.network/).
 
 After the Agentory indexer processes the registration, find and inspect the agent in [Agentory staging](https://staging.agentory.xyz). On-chain verification and Agentory discovery are related but separate steps: the first confirms registry state, while the second confirms that Agentory has indexed and presented the agent.
 

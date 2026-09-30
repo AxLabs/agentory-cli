@@ -31,6 +31,19 @@ export async function verifyOnChain(args) {
     if (getAddress(owner) !== getAddress(args.expectedOwner)) {
         throw new Error(`ownerOf(${args.state.agentId}) is ${owner}, expected ${args.expectedOwner}`);
     }
+    if (args.state.agentURI && tokenURI !== args.state.agentURI) {
+        throw new Error("On-chain tokenURI does not match the URI written during setAgentURI");
+    }
+    if (args.state.metadataStorage?.backend === "external") {
+        return {
+            agentId: args.state.agentId,
+            owner,
+            agentWallet,
+            tokenURI,
+            metadataStorage: args.state.metadataStorage,
+            expectedServices: args.config.services ?? [],
+        };
+    }
     const decodedMetadata = tokenURI.startsWith("data:")
         ? decodeMetadataDataUri(tokenURI)
         : await readHttpMetadata(tokenURI, args.fetchImpl);
@@ -47,9 +60,6 @@ export async function verifyOnChain(args) {
     }
     if (!registrationRefMatchesResult) {
         throw new Error("On-chain metadata is missing the exact eip155 registration reference");
-    }
-    if (args.state.agentURI && tokenURI !== args.state.agentURI) {
-        throw new Error("On-chain tokenURI does not match the URI written during setAgentURI");
     }
     return {
         agentId: args.state.agentId,

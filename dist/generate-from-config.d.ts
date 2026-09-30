@@ -13,7 +13,8 @@ export interface GenerateConfigFile {
     agentWallet?: string;
     generatedPrivateKey?: string;
     skipInstall?: boolean;
-    metadataStorage?: "inline" | "neofs";
+    metadataStorage?: "inline" | "neofs" | "external";
+    agentURI?: string;
     a2aEndpoint?: string;
     mcpEndpoint?: string;
     oasfEndpoint?: string;

@@ -10,6 +10,6 @@ export interface RegisterDeps {
     config: AgentProjectConfig;
     storage?: MetadataStorage;
 }
-export declare function canReuseMetadataPublication(state: RegistrationState, metadata: AgentRegistrationMetadata, configuredBackend: MetadataStorageBackend): boolean;
+export declare function canReuseMetadataPublication(state: RegistrationState, metadata: AgentRegistrationMetadata, configuredBackend: MetadataStorageBackend, configuredAgentURI?: string): boolean;
 export declare function reconcilePending(deps: RegisterDeps, state: RegistrationState): Promise<RegistrationState>;
 export declare function registerOrResume(deps: RegisterDeps, state: RegistrationState): Promise<RegistrationState>;

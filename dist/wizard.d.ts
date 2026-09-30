@@ -12,7 +12,9 @@ export interface WizardAnswers {
     agentWallet: string;
     generatedPrivateKey?: string;
     x402Provider?: X402Provider;
-    metadataStorage?: "inline" | "neofs";
+    metadataStorage?: "inline" | "neofs" | "external";
+    /** Existing user-managed registration metadata URI. */
+    agentURI?: string;
     skills?: string[];
     domains?: string[];
     /** Public agent-card URL for ERC-8004 A2A service metadata (Neo X). */
@@ -24,4 +26,8 @@ export interface WizardAnswers {
 }
 export { isSolanaChain } from "./config-solana.js";
 export declare const hasFeature: (answers: WizardAnswers, feature: "a2a" | "mcp" | "x402") => boolean;
+export declare const NORMAL_METADATA_STORAGE_CHOICES: {
+    name: string;
+    value: "external";
+}[];
 export declare function runWizard(): Promise<WizardAnswers>;

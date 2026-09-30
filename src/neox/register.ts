@@ -41,7 +41,8 @@ export interface RegisterDeps {
 export function canReuseMetadataPublication(
     state: RegistrationState,
     metadata: AgentRegistrationMetadata,
-    configuredBackend: MetadataStorageBackend
+    configuredBackend: MetadataStorageBackend,
+    configuredAgentURI?: string
 ): boolean {
     if (
         !state.metadata ||
@@ -52,6 +53,10 @@ export function canReuseMetadataPublication(
         !metadataEquals(state.metadata, metadata)
     ) {
         return false;
+    }
+
+    if (configuredBackend === "external") {
+        return state.agentURI === configuredAgentURI;
     }
 
     if (state.metadataStorage.backend === "inline") {
@@ -75,6 +80,11 @@ function storageForPublication(deps: RegisterDeps): MetadataStorage {
     if (configuredBackend === "neofs" && !deps.storage) {
         throw new Error(
             "NeoFS metadata storage dependency is required when metadataStorage is \"neofs\""
+        );
+    }
+    if (configuredBackend === "external" && !deps.storage) {
+        throw new Error(
+            "User-provided metadata URI dependency is required when metadataStorage is \"external\""
         );
     }
     return deps.storage ?? new InlineMetadataStorage();
@@ -136,7 +146,8 @@ export async function reconcilePending(
     const publicationIsCurrent = canReuseMetadataPublication(
         { ...state, agentURI: updated.newURI },
         intendedMetadata,
-        deps.config.metadataStorage ?? "inline"
+        deps.config.metadataStorage ?? "inline",
+        deps.config.agentURI
     );
     return persistUriSet(deps.projectDir, state, {
         agentURI: updated.newURI,
@@ -219,7 +230,8 @@ export async function registerOrResume(deps: RegisterDeps, state: RegistrationSt
             !canReuseMetadataPublication(
                 current,
                 metadata,
-                deps.config.metadataStorage ?? "inline"
+                deps.config.metadataStorage ?? "inline",
+                deps.config.agentURI
             )
         ) {
             throw new Error(
@@ -232,7 +244,7 @@ export async function registerOrResume(deps: RegisterDeps, state: RegistrationSt
         return current;
     }
 
-    if (!hasMinted(current) && deps.config.metadataStorage === "neofs") {
+    if (!hasMinted(current) && deps.config.metadataStorage !== undefined && deps.config.metadataStorage !== "inline") {
         storageForPublication(deps);
     }
 
@@ -266,7 +278,8 @@ export async function registerOrResume(deps: RegisterDeps, state: RegistrationSt
             !canReuseMetadataPublication(
                 current,
                 metadata,
-                deps.config.metadataStorage ?? "inline"
+                deps.config.metadataStorage ?? "inline",
+                deps.config.agentURI
             )
         ) {
             const storage = storageForPublication(deps);

@@ -7,6 +7,7 @@ import bs58 from "bs58";
 import { CHAINS, TRUST_MODELS, type ChainKey, type TrustModel, type X402Provider } from "./config.js";
 import { SOLANA_CHAINS, isSolanaChain, type SolanaChainKey } from "./config-solana.js";
 import { isNeoxChain } from "./neox/constants.js";
+import { validateRegistrationMetadataUri } from "./neox/metadata.js";
 import {
     defaultA2aAgentCardEndpoint,
     parseOasfTaxonomyInput,
@@ -42,7 +43,9 @@ export interface WizardAnswers {
     agentWallet: string;
     generatedPrivateKey?: string;
     x402Provider?: X402Provider;
-    metadataStorage?: "inline" | "neofs";
+    metadataStorage?: "inline" | "neofs" | "external";
+    /** Existing user-managed registration metadata URI. */
+    agentURI?: string;
     // OASF taxonomy (optional) - https://github.com/8004-org/oasf
     skills?: string[];
     domains?: string[];
@@ -61,6 +64,10 @@ export { isSolanaChain } from "./config-solana.js";
 export const hasFeature = (answers: WizardAnswers, feature: "a2a" | "mcp" | "x402") =>
     answers.features.includes(feature);
 
+export const NORMAL_METADATA_STORAGE_CHOICES = [
+    { name: "Use my own URI", value: "external" as const },
+];
+
 // Raw answers from inquirer (before post-processing)
 interface RawAnswers {
     projectDir: string;
@@ -73,7 +80,8 @@ interface RawAnswers {
     chain: ChainKey | SolanaChainKey;
     trustModels: TrustModel[];
     x402Provider?: X402Provider;
-    metadataStorage?: "inline" | "neofs";
+    metadataStorage?: "inline" | "neofs" | "external";
+    agentURI?: string;
     a2aEndpoint?: string;
     mcpEndpoint?: string;
     oasfSkills?: string;
@@ -172,13 +180,19 @@ export async function runWizard(): Promise<WizardAnswers> {
         {
             type: "list",
             name: "metadataStorage",
-            message: "Registration metadata storage (Neo X T4):",
-            choices: [
-                { name: "Inline data URI (no external storage required)", value: "inline" },
-                { name: "NeoFS REST gateway (requires gateway and container configuration)", value: "neofs" },
-            ],
-            default: "inline",
-            when: (ans: Partial<RawAnswers>) => ans.chain === "neox-t4",
+            message: "Registration metadata:",
+            choices: NORMAL_METADATA_STORAGE_CHOICES,
+            default: "external",
+        },
+        {
+            type: "input",
+            name: "agentURI",
+            message: "Your existing registration metadata URI:",
+            when: (ans: Partial<RawAnswers>) => ans.metadataStorage === "external",
+            validate: (input: string) => {
+                const result = validateRegistrationMetadataUri(input);
+                return result.ok || result.message;
+            },
         },
         {
             type: "checkbox",
@@ -344,7 +358,8 @@ export async function runWizard(): Promise<WizardAnswers> {
         agentWallet,
         generatedPrivateKey,
         x402Provider,
-        metadataStorage: answers.metadataStorage ?? "inline",
+        metadataStorage: answers.metadataStorage ?? "external",
+        agentURI: answers.agentURI,
         // Default to false if A2A not selected (question was skipped)
         a2aStreaming: answers.a2aStreaming ?? false,
         a2aEndpoint: answers.a2aEndpoint,

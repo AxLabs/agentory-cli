@@ -17,9 +17,11 @@ export interface AgentProjectConfig {
     registry?: Address;
     rpcUrl?: string;
     metadataStorage?: MetadataStorageBackend;
+    /** Existing user-managed registration metadata URI. Preserved exactly. */
+    agentURI?: string;
     services?: AgentService[];
 }
-export type MetadataStorageBackend = "inline" | "neofs";
+export type MetadataStorageBackend = "inline" | "neofs" | "external";
 export interface PublishedMetadata {
     uri: string;
     backend: MetadataStorageBackend;
@@ -90,11 +92,11 @@ export interface VerificationResult {
     owner: Address;
     agentWallet: Address;
     tokenURI: string;
-    decodedMetadata: AgentRegistrationMetadata;
-    metadataMatches: boolean;
-    registrationRefMatches: boolean;
+    decodedMetadata?: AgentRegistrationMetadata;
+    metadataMatches?: boolean;
+    registrationRefMatches?: boolean;
     metadataStorage: PublishedMetadata;
-    servicesMatch: boolean;
+    servicesMatch?: boolean;
     expectedServices: AgentService[];
 }
 export interface SecretFreeRegistrationResult {
@@ -106,7 +108,7 @@ export interface SecretFreeRegistrationResult {
     finalURI: string;
     agentURI: string;
     metadataStorage: PublishedMetadata;
-    decodedMetadata: AgentRegistrationMetadata;
+    decodedMetadata?: AgentRegistrationMetadata;
     transactionHashes: {
         register?: Hex;
         setAgentURI?: Hex;

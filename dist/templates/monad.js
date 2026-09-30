@@ -65,9 +65,10 @@ PRIVATE_KEY=${privateKeyValue}
 # RPC URL for ${chain.name}
 RPC_URL=${chain.rpcUrl}
 
-# Pinata JWT for IPFS upload (get from https://pinata.cloud)
+${answers.metadataStorage === "external" ? "" : `# Pinata JWT for the legacy IPFS compatibility path
 PINATA_JWT=your_pinata_jwt_here
 
+`}
 # OpenAI API key for LLM agent
 OPENAI_API_KEY=your_openai_api_key_here
 `;
@@ -77,6 +78,8 @@ export function generateMonadRegisterScript(answers, chain) {
     const agentSlug = answers.agentName.toLowerCase().replace(/\s+/g, "-");
     const hasA2A = hasFeature(answers, "a2a");
     const hasMCP = hasFeature(answers, "mcp");
+    const usesExternalUri = answers.metadataStorage === "external";
+    const agentURI = answers.agentURI ?? "";
     // Build services array
     const services = [];
     if (hasA2A) {
@@ -105,8 +108,7 @@ export function generateMonadRegisterScript(answers, chain) {
  * 
  * Requirements:
  * - PRIVATE_KEY in .env (wallet with MON for gas)
- * - PINATA_JWT in .env (for IPFS upload)
- * - RPC_URL in .env (optional, defaults to public endpoint)
+${usesExternalUri ? "" : " * - PINATA_JWT in .env (for the legacy IPFS compatibility path)\n"} * - RPC_URL in .env (optional, defaults to public endpoint)
  * 
  * Run with: npm run register
  */
@@ -170,11 +172,17 @@ const AGENT_METADATA = {
   registrations: [],
   supportedTrust: [${trustModels}],
 };
+${usesExternalUri ? `
+// Registered exactly as supplied. This script does not fetch, upload,
+// normalize, or rewrite the user-managed metadata it references.
+const USER_PROVIDED_AGENT_URI = ${JSON.stringify(agentURI)};
+` : ""}
 
 // ============================================================================
 // IPFS Upload via Pinata
 // ============================================================================
 
+${usesExternalUri ? "" : `
 async function uploadToIPFS(metadata: object): Promise<string> {
   const pinataJwt = process.env.PINATA_JWT;
   if (!pinataJwt) {
@@ -210,6 +218,7 @@ async function uploadToIPFS(metadata: object): Promise<string> {
   
   return ipfsUri;
 }
+`}
 
 // ============================================================================
 // Main Registration Flow
@@ -271,8 +280,8 @@ async function main() {
   console.log(\`   Description: \${AGENT_METADATA.description}\`);
   console.log('');
 
-  // Upload to IPFS
-  const agentURI = await uploadToIPFS(AGENT_METADATA);
+  // Acquire the registration URI independently of the on-chain write.
+  const agentURI = ${usesExternalUri ? "USER_PROVIDED_AGENT_URI" : "await uploadToIPFS(AGENT_METADATA)"};
   console.log('');
 
   // Register on-chain
@@ -345,6 +354,7 @@ export function generateMonadReadme(answers, chain) {
     const contracts = getMonadContracts(answers.chain);
     const hasA2A = hasFeature(answers, "a2a");
     const hasMCP = hasFeature(answers, "mcp");
+    const usesExternalUri = answers.metadataStorage === "external";
     return `# ${answers.agentName}
 
 ${answers.agentDescription}
@@ -365,9 +375,10 @@ Edit \`.env\` and add your API keys:
 # Already set if wallet was auto-generated
 PRIVATE_KEY=your_private_key
 
-# Get from https://pinata.cloud
+${usesExternalUri ? "" : `# Required only by the legacy Pinata/IPFS compatibility path
 PINATA_JWT=your_pinata_jwt
 
+`}
 # Get from https://platform.openai.com
 OPENAI_API_KEY=your_openai_key
 \`\`\`
@@ -385,9 +396,13 @@ npm run register
 \`\`\`
 
 This will:
-- Upload your agent metadata to IPFS via Pinata
-- Register an ERC-8004 identity on ${chain.name}
+${usesExternalUri ? `- Register your existing metadata URI unchanged: \`${answers.agentURI}\`
+- Make no metadata upload or storage-provider API call
+` : "- Upload your agent metadata to IPFS via the legacy Pinata compatibility path\n"}- Register an ERC-8004 identity on ${chain.name}
 - Output the identity's agent ID and transaction hash
+${usesExternalUri ? `
+You are responsible for keeping the referenced metadata publicly readable and correct. Treat published metadata as immutable: when its contents change, publish a new versioned URI rather than relying on mutable content at the old URI. The registration flow validates URI syntax locally but does not fetch or verify the remote contents.
+` : ""}
 ${hasA2A ? `
 ### 5. Start the A2A server
 
