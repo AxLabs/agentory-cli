@@ -1,7 +1,7 @@
 {
     "name": "agentory-cli",
     "version": "1.4.2",
-    "description": "CLI to scaffold ERC-8004 compliant AI agents with A2A, MCP, and x402 support",
+    "description": "CLI to scaffold AI agent projects and ERC-8004 Web3 registrations for Agentory",
     "type": "module",
     "bin": {
         "agentory": "dist/index.js"

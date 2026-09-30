@@ -168,7 +168,7 @@ export const CHAINS = {
         name: "Neo X T4 (Testnet)",
         chainId: NEOX_T4_CHAIN_ID,
         rpcUrl: NEOX_T4_RPC_URL,
-        // No 8004scan route exists for Neo X; generated projects must use xt4scan.
+        // Generated Neo X projects use xt4scan for chain transactions.
         scanPath: "",
         x402Network: "eip155:12227332",
         x402Supported: false,

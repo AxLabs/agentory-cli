@@ -282,7 +282,8 @@ describe("Neo X generator service declarations", () => {
             "utf8"
         );
         expect(readme).toContain("agent-config.ts");
-        expect(readme).toContain("service=A2A");
+        expect(readme).toContain("https://staging.agentory.xyz");
+        expect(readme).not.toContain("agentory.xyz/api/agents");
         expect(readme).not.toContain("not advertised in on-chain metadata");
     });
 

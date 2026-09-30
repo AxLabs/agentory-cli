@@ -124,16 +124,16 @@ export function generateSolanaRegistrationJson(answers, chain) {
 }
 export function generateSolanaRegisterScript(_answers, chain) {
     return `/**
- * Solana 8004 Agent Registration Script
+ * Solana 8004 Identity Registration Script
  * 
- * This script registers your agent on the 8004 Solana program.
+ * This script creates an on-chain identity for your agent on the 8004 Solana program.
  * It performs the following steps:
  * 
  * 1. Reads your registration.json metadata
  * 2. Validates metadata using buildRegistrationFileJson() (adds correct type/version)
  * 3. Uploads validated metadata to IPFS via Pinata
- * 4. Calls the 8004 program to mint your agent NFT
- * 5. Returns your agent address for future reference
+ * 4. Calls the 8004 program to create the on-chain identity asset
+ * 5. Returns the identity asset address for future reference
  * 
  * Requirements:
  * - SOLANA_PRIVATE_KEY in .env (wallet with SOL for fees)
@@ -208,8 +208,8 @@ async function main() {
     rpcUrl: process.env.SOLANA_RPC_URL, // Optional custom RPC
   });
 
-  // Step 7: Register the agent
-  console.log('📝 Registering agent on ${chain.name}...');
+  // Step 7: Create the on-chain identity
+  console.log('📝 Registering an experimental identity on ${chain.name}...');
   
   const result = await sdk.registerAgent(metadataUri);
 
@@ -219,10 +219,10 @@ async function main() {
   }
 
   // Step 8: Output results
-  console.log('\\n✅ Agent registered successfully!');
+  console.log('\\n✅ Experimental identity registered successfully!');
   console.log('📋 Transaction:', \`${chain.explorer}/tx/\${result.signature}${chain.explorerSuffix}\`);
-  console.log('🆔 Agent ID:', result.agentId?.toString() ?? 'Unknown');
-  console.log('🔗 Asset:', result.asset?.toBase58() ?? 'Unknown');
+  console.log('🆔 Identity ID:', result.agentId?.toString() ?? 'Unknown');
+  console.log('🔗 Identity asset:', result.asset?.toBase58() ?? 'Unknown');
     console.log('📄 Metadata URI:', metadataUri);
 
     // Update registration.json with the Solana reference
@@ -233,7 +233,7 @@ async function main() {
     cluster: CLUSTER,
     }];
     await fs.writeFile('registration.json', JSON.stringify(registration, null, 2));
-  console.log('\\n✅ registration.json updated with agent ID:', result.agentId?.toString());
+  console.log('\\n✅ registration.json updated with identity ID:', result.agentId?.toString());
 }
 
 main().catch((err) => {
@@ -260,7 +260,7 @@ export function generateAgentTs(answers) {
 export async function* streamResponse(userMessage: string, history: AgentMessage[] = []): AsyncGenerator<string> {
   const systemPrompt: AgentMessage = {
     role: 'system',
-    content: 'You are a helpful AI assistant registered on the 8004 protocol (Solana). Be concise and helpful.',
+    content: 'You are a helpful AI assistant. Be concise and helpful.',
   };
 
   const messages: AgentMessage[] = [
@@ -353,7 +353,7 @@ export async function generateResponse(userMessage: string, history: AgentMessag
   // Customize this to match your agent's purpose
   const systemPrompt: AgentMessage = {
     role: 'system',
-    content: 'You are a helpful AI assistant registered on the 8004 protocol (Solana). Be concise and helpful.',
+    content: 'You are a helpful AI assistant. Be concise and helpful.',
   };
 
   // Build the full message array: system prompt + history + new message
@@ -374,6 +374,8 @@ export function generateSolanaReadme(answers, chain) {
     return `# ${answers.agentName}
 
 ${answers.agentDescription}
+
+> This configuration-only Solana Devnet path is retained as experimental groundwork. It is not a supported Agentory CLI target and has not been validated end to end.
 
 ## Quick Start
 
@@ -400,9 +402,11 @@ OPENAI_API_KEY=your_openai_key
 
 ### 3. Fund your wallet
 
-Your agent wallet: \`${answers.agentWallet}\`
+Fund the signing wallet configured by \`SOLANA_PRIVATE_KEY\`.
 
 Get devnet SOL from: https://faucet.solana.com/
+
+Configured agent-wallet service reference: \`${answers.agentWallet}\`
 
 ### 4. Register on-chain
 
@@ -412,9 +416,9 @@ npm run register
 
 This will:
 - Validate your metadata using the 8004-solana SDK
-- Upload your agent metadata to IPFS
-- Register your agent on ${chain.name}
-- Output your agent address
+- Upload registration metadata to IPFS
+- Create an experimental on-chain identity on ${chain.name}
+- Output the identity ID and asset address
 ${hasA2A
         ? `
 ### 5. Start the A2A server
@@ -479,23 +483,17 @@ Browse the full taxonomy: https://schema.oasf.outshift.com/0.8.0
 
 ## Going Live
 
-By default, your agent is registered with \`active: false\`. This is intentional - it lets you test without appearing in explorer listings.
-
-When you're ready for production:
-1. Edit \`registration.json\` and change \`"active": false\` to \`"active": true\`
-2. Re-run \`npm run register\` to update your agent's metadata
+Registration metadata defaults to \`active: false\`. This experimental project does not provide a validated, target-safe metadata update workflow.
 
 ## Next Steps
 
 1. Update the endpoint URLs in \`registration.json\` with your production domain
 2. Customize the agent logic in \`src/agent.ts\`
 3. Deploy to a cloud provider (Vercel, Railway, etc.)
-4. Re-run \`npm run register\` if you change metadata
 
 ## Resources
 
 - [8004 Protocol](https://eips.ethereum.org/EIPS/eip-8004)
-- [8004scan Explorer](https://www.8004scan.io/)
 - [8004-solana SDK](https://www.npmjs.com/package/8004-solana)
 - [OASF Taxonomy](https://github.com/8004-org/oasf)
 `;

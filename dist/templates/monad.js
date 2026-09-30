@@ -99,7 +99,7 @@ export function generateMonadRegisterScript(answers, chain) {
     // Build trust models
     const trustModels = answers.trustModels.map(t => `"${t}"`).join(", ");
     return `/**
- * ERC-8004 Agent Registration Script for Monad
+ * ERC-8004 Identity Registration Script for Monad
  * 
  * Direct contract interaction (agent0-sdk doesn't support Monad yet)
  * 
@@ -259,8 +259,8 @@ async function main() {
 
   if (agentCount > 0n) {
     console.log('');
-    console.log(\`⚠️  This wallet already owns \${agentCount} agent(s).\`);
-    console.log('   Running register again will create a NEW agent.');
+    console.log(\`⚠️  This wallet already owns \${agentCount} ERC-8004 identity/identities.\`);
+    console.log('   Running register again will create a NEW identity.');
     console.log('   Press Ctrl+C to cancel, or wait 5 seconds to continue...');
     await new Promise(resolve => setTimeout(resolve, 5000));
   }
@@ -276,7 +276,7 @@ async function main() {
   console.log('');
 
   // Register on-chain
-  console.log('⛓️  Registering agent on ${chain.name}...');
+  console.log('⛓️  Registering an ERC-8004 identity on ${chain.name}...');
   console.log(\`   Registry: \${IDENTITY_REGISTRY}\`);
   console.log(\`   Agent URI: \${agentURI}\`);
 
@@ -324,13 +324,10 @@ async function main() {
   }
 
   console.log('');
-  console.log('✅ Agent registered successfully!');
+  console.log('✅ ERC-8004 identity registered successfully!');
   console.log('');
   console.log('🆔 Agent ID:', agentId);
   console.log('👛 Owner:', account.address);
-  console.log('');
-  console.log('🌐 View on 8004scan:');
-  console.log(\`   https://www.8004scan.io/agents/${chain.scanPath}/\${agentId}\`);
   console.log('');
   console.log('📋 Next steps:');
   console.log('   1. Update endpoint URLs in this file with your production domain');
@@ -377,7 +374,7 @@ OPENAI_API_KEY=your_openai_key
 
 ### 3. Fund your wallet
 
-Your agent wallet: \`${answers.agentWallet}\`
+Fund the signing wallet configured by \`PRIVATE_KEY\`. This target does not configure a separate ERC-8004 agent wallet from the wizard-provided address.
 
 Get testnet MON from: https://faucet.monad.xyz/
 
@@ -389,8 +386,8 @@ npm run register
 
 This will:
 - Upload your agent metadata to IPFS via Pinata
-- Register your agent on ${chain.name}
-- Output your agent ID and 8004scan link
+- Register an ERC-8004 identity on ${chain.name}
+- Output the identity's agent ID and transaction hash
 ${hasA2A ? `
 ### 5. Start the A2A server
 
@@ -448,7 +445,6 @@ Browse the full taxonomy: https://schema.oasf.outshift.com/0.8.0
 ## Resources
 
 - [ERC-8004 Standard](https://eips.ethereum.org/EIPS/eip-8004)
-- [8004scan Explorer](https://www.8004scan.io/)
 - [Monad Docs](https://docs.monad.xyz/)
 `;
 }

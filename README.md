@@ -1,45 +1,27 @@
 # Agentory CLI
 
-CLI tool to scaffold [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) compliant AI agents with A2A, MCP, and x402 payment support.
+Agentory is a discovery and trust layer for AI agents, making them easy to find, verify, and interact with across the open agent ecosystem.
 
-**Supports EVM chains, including Neo X T4.**
+Agentory CLI currently scaffolds runnable agent projects and their Web3 registration flows. It uses [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) for on-chain identity and registration metadata, with optional A2A, MCP, and x402 capabilities. Neo X is the primary network focus; the current Agentory staging path uses the Neo X T4 testnet.
+
+Agentory is broader than ERC-8004. An agent is the service people interact with; an ERC-8004 identity is one way to register that agent for Web3 discovery and trust.
 
 ## Table of Contents
-- [What is ERC-8004?](#what-is-erc-8004)
-- [Prerequisites](#prerequisites)
+
 - [Quick Start](#quick-start)
-- [What Gets Generated](#what-gets-generated)
-- [Wizard Options](#wizard-options)
-- [Supported Chains](#supported-chains)
+- [Creating an Agent Project](#creating-an-agent-project)
+- [Registering a Web3 Identity](#registering-a-web3-identity)
+- [Verifying and Discovering an Agent](#verifying-and-discovering-an-agent)
+- [Agent Protocols and Capabilities](#agent-protocols-and-capabilities)
+- [Available Web3 Registration Targets](#available-web3-registration-targets)
 - [Experimental Solana Groundwork](#experimental-solana-groundwork)
-- [Generated Project Usage](#generated-project-usage)
-  - [1. Configure Environment](#1-configure-environment)
-  - [2. Register Agent On-Chain](#2-register-agent-on-chain)
-  - [3. Updating Your Agent](#3-updating-your-agent)
-  - [4. Start Your Servers](#4-start-your-servers)
-- [A2A, x402, and MCP Protocols](#a2a-protocol)
-- [Troubleshooting](#troubleshooting)
+- [How Agentory Uses ERC-8004](#how-agentory-uses-erc-8004)
 - [Development](#development)
 - [Resources](#resources)
 
-
-## What is ERC-8004?
-
-ERC-8004 is a protocol for discovering and trusting AI agents across organizational boundaries. It provides:
-
--   **Identity Registry** - On-chain agent registration as NFTs
--   **Reputation Registry** - Feedback and trust signals
--   **Validation Registry** - Stake-secured verification
-## Prerequisites
-
-Before using the generator, ensure you have:
-- **Node.js**: Version 18.0.0 or higher.
-- **Package Manager**: npm, pnpm, or bun.
-- **Wallet**: An EVM wallet (the tool can generate one for you if needed).
-
 ## Quick Start
 
-This AxLabs Neo X fork is not currently published as a separate npm package. To run the fork deterministically:
+Agentory CLI is not yet published to npm. Run it from this checkout:
 
 ```bash
 git clone https://github.com/AxLabs/agentory-cli.git
@@ -49,223 +31,179 @@ npm run build
 node dist/index.js
 ```
 
-The wizard will guide you through creating your agent. Agentory CLI is not yet published to npm, so run it from this checkout for the Neo X demo.
-If you want 4mica-powered x402 payments, choose a supported chain (Ethereum Sepolia or Polygon Amoy), enable `x402 payments`, and select `4mica` as the provider when prompted.
+The interactive flow asks what to generate, which Web3 network to target, and which optional protocols to include. For the current Agentory staging flow, choose **Neo X T4**.
 
-Noninteractive generation (same generator as the wizard):
+For a repeatable noninteractive run, provide a JSON configuration file:
 
 ```bash
 node dist/index.js --config ./agent.config.json --skip-install
 ```
 
-## What Gets Generated
+## Creating an Agent Project
 
-The wizard creates a complete agent project with:
+The CLI collects:
 
-```
+- the agent's name, description, and image;
+- a Web3 registration network;
+- a wallet address, whose role depends on the selected registration target, or permission to generate a signing wallet;
+- optional A2A, MCP, and x402 capabilities;
+- public service endpoints and OASF taxonomy data where the target supports them; and
+- target-specific registration metadata storage options.
+
+The generated project contains the agent runtime and the scripts required by the selected registration target. Files vary by target, but may include:
+
+```text
 my-agent/
 ├── package.json
-├── .env.example
-├── registration.json          # ERC-8004 metadata
-├── tsconfig.json
+├── .env or .env.example
 ├── src/
-│   ├── register.ts            # On-chain registration script
-│   ├── agent.ts               # LLM agent (OpenAI)
-│   ├── a2a-server.ts          # A2A protocol server (optional)
-│   ├── mcp-server.ts          # MCP protocol server (optional)
-│   └── tools.ts               # MCP tools (optional)
+│   ├── register.ts
+│   ├── agent.ts
+│   ├── agent-config.ts          # Neo X
+│   ├── a2a-server.ts            # Optional
+│   ├── a2a-client.ts            # Optional
+│   ├── mcp-server.ts            # Optional
+│   └── tools.ts                 # Optional MCP tools
 └── .well-known/
-    └── agent-card.json        # A2A discovery card
+    └── agent-card.json          # Optional A2A discovery card
 ```
 
-## Wizard Options
+Dependencies are installed automatically unless `--skip-install` is supplied. Each generated project has its own README with target-specific setup steps.
 
-| Option                | Description                                                                                                    |
-| --------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Project directory** | Where to create the project                                                                                                        |
-| **Agent name**        | Your agent's name                                                                                                           |
-| **Agent description** | What your agent does                                                                                                           |
-| **Agent image**       | URL to your agent's image/logo                                                                                                           |
-| **Agent wallet**      | EVM address (leave empty to auto-generate)                                                                                                 |
-| **A2A server**        | Enable agent-to-agent communication                                                                                                  |
-| **A2A streaming**     | Enable Server-Sent Events (SSE) for streaming responses                                                                                                      |
-| **MCP server**        | Enable Model Context Protocol tools                                                                                                          |
-| **x402 payments**     | [x402](https://x402.org) USDC micropayments (Base, Polygon)                                                                                                       |
-| **Chain**             | One of the supported EVM networks listed below                                                                                                         |
-| **Trust models**      | reputation, crypto-economic, tee-attestation                                                                                                |
+### Wallet behavior by target
 
-## Supported Chains
+The **signing wallet** supplies the key used to sign registration transactions and pay network fees. An **ERC-8004 agent wallet** is a separate, optional address associated with the identity where a target and workflow support it.
 
-### EVM Chains
+| Target | Current generated behavior |
+| --- | --- |
+| Standard EVM targets | `PRIVATE_KEY` signs registration. The wizard's agent-wallet address is associated with the identity through `setAgentWallet()`; when the CLI generates a wallet, the same address is used for both roles. |
+| Monad | `PRIVATE_KEY` signs registration and becomes the owner. The generated registration script does not record the wizard-provided address as a separate agent wallet. |
+| Neo X T4 | `PRIVATE_KEY` signs registration and becomes the owner. The generated flow does not configure a separate agent wallet; verification reports the value returned by the registry. |
 
-| Chain              | Identity Registry                            | Status       |
-| ------------------ | -------------------------------------------- | ------------ |
-| ETH Sepolia        | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | ✅ Available |
-| Base Sepolia       | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | ✅ Available |
-| SKALE Base         | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | ✅ Available |
-| SKALE Base Sepolia | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | ✅ Available |
-| Avalanche C-Chain  | Via agent0-sdk (chainId 43114)               | ✅ Available |
-| Avalanche Fuji     | Via agent0-sdk (chainId 43113)               | ✅ Available |
-| Neo X T4           | `0x8004A856a396D08d31E597a867B1D8273901e641` | ✅ Direct viem (no Agent0 SDK, no x402) |
+The retained experimental Solana path has its own SDK-specific wallet metadata and is not part of the supported interactive workflow.
 
-## Experimental Solana Groundwork
+Back up generated keys immediately, keep them in gitignored files, and never commit them.
 
-The repository retains a configuration-only Solana Devnet implementation as groundwork for potential future support. It is not currently a supported Agentory CLI target, is not exposed through the interactive wizard, and has not been validated end-to-end sufficiently for normal use. See the [Solana support assessment](docs/solana-support-research.md) for the current technical status.
+## Registering a Web3 Identity
 
-## Generated Project Usage
+Registration publishes an ERC-8004 identity and its public registration metadata. Run the commands from the generated project, not from the Agentory CLI repository.
 
-After generating your project:
+### Neo X staging path
+
+Neo X T4 projects provide a guarded, resumable flow:
 
 ```bash
-cd my-agent
-npm install
+npm run preflight
+npm run register
+npm run verify
 ```
 
-### 1. Configure Environment
+- `preflight` checks the T4 chain, registry, signer balance, and next transaction without writing.
+- `register` mints the identity, publishes registration metadata, and sets its URI.
+- `verify` reads the identity and metadata back and writes a secret-free result file.
 
-Edit `.env` and fill in:
+Fund the signing wallet with testnet GAS from the [Neo X T4 faucet](https://neoxfaucet.ngd.network/). See the [Neo X T4 demo runbook](docs/neox-t4-demo.md) for the complete staging workflow.
 
-```env
-PRIVATE_KEY=...                   # Auto-generated if you left wallet empty
-OPENAI_API_KEY=your_openai_key    # For LLM responses
-PINATA_JWT=your_pinata_jwt        # If using IPFS storage (requires pinJSONToIPFS scope)
-```
+### Registration metadata storage today
 
-**Auto-generated wallet:** If you left the wallet address empty, a new wallet was generated and the private key is already in `.env`. **Back up your .env file** and **fund the wallet with testnet tokens** before registering.
+Storage behavior is currently target-specific:
 
--   **EVM chains:** Fund with testnet ETH (use faucets for Sepolia, Base Sepolia, etc.)
+| Target | Current behavior |
+| --- | --- |
+| Neo X T4 | Inline data URI by default. A direct NeoFS integration is available as an advanced acceptance/infrastructure path and requires an existing container and gateway configuration. |
+| Other EVM targets | Registration metadata is uploaded to IPFS through Pinata and requires `PINATA_JWT`. |
+| Solana groundwork | Uses Pinata/IPFS, but Solana is not a supported Agentory CLI target. |
 
-**Pinata JWT:** Create an API key at [pinata.cloud](https://pinata.cloud) with `pinJSONToIPFS` scope for public IPFS pinning.
+The direct NeoFS path is not the intended production managed-storage experience. Do not expose its container credentials or bearer token to end users or generated applications outside the controlled acceptance path.
 
-### 2. Register Agent On-Chain
+### Other EVM targets
+
+Generated projects for the other EVM targets provide:
 
 ```bash
 npm run register
 ```
 
-**EVM chains:** Uploads metadata to IPFS and mints an NFT on the Identity Registry.
+Follow the generated README for the selected network's wallet funding and environment requirements. These projects currently require a signing key, native gas token, and Pinata credentials. They do not provide the Neo X-specific `preflight` and `verify` commands.
 
-**Neo X T4:** Uses direct viem calls. `npm run preflight` is read-only. `npm run register` calls parameterless `register()`, then publishes metadata through either the default inline data URI backend or a configured NeoFS REST gateway before calling `setAgentURI`. No Pinata or OpenAI key is required. Resume is automatic after minting and after a successful NeoFS upload. Explorer: [xt4scan](https://xt4scan.ngd.network). There is no 8004scan route for Neo X. See the [Neo X T4 demo runbook](docs/neox-t4-demo.md).
+The CLI does not currently provide one safe, uniform command for updating an already registered identity. Do not assume that rerunning `npm run register` updates an existing identity; behavior differs by generated target.
 
-After registration on supported Agent0 chains, view your agent on [8004scan.io](https://www.8004scan.io/).
+## Verifying and Discovering an Agent
 
-### 2(b). Updating Your Agent (Optional)
+For Neo X T4, `npm run verify` confirms the on-chain owner, registry-reported agent wallet, metadata URI, registration reference, and declared services. Transaction links use the [Neo X T4 explorer](https://xt4scan.ngd.network/).
 
-If you update your agent's name, description, image, or [OASF](https://github.com/8004-org/oasf) skills in `src/register.ts`, you need to sync these changes on-chain:
+After the Agentory indexer processes the registration, find and inspect the agent in [Agentory staging](https://staging.agentory.xyz). On-chain verification and Agentory discovery are related but separate steps: the first confirms registry state, while the second confirms that Agentory has indexed and presented the agent.
 
-1. Update the configuration in `src/register.ts`.
-2. Run the registration script again:
-   ```bash
-   npm run register
-   ```
-This will upload the new metadata to IPFS and update your agent's URI on the Identity Registry.
+Other scaffold targets currently report their registration result through the generated script. They do not yet share a generic Agentory discovery-verification command.
 
-### 3. Start Your Servers
+## Agent Protocols and Capabilities
 
-```bash
-# Start A2A server
-npm run start:a2a
+### A2A
 
-# Start MCP server (in another terminal)
-npm run start:mcp
-```
+The optional A2A server exposes:
 
-## A2A Protocol
+- an Agent Card at `/.well-known/agent-card.json`;
+- a JSON-RPC endpoint at `/a2a`; and
+- `message/send`, `tasks/get`, and `tasks/cancel` methods.
 
-The generated A2A server implements:
-
--   **Agent Card** at `/.well-known/agent-card.json`
--   **JSON-RPC 2.0** endpoint at `/a2a`
--   Methods: `message/send`, `tasks/get`, `tasks/cancel`
-
-### Testing Your A2A Endpoint
-
-**1. Start the server:**
+Run it from a generated project:
 
 ```bash
 npm run start:a2a
 ```
 
-**2. Test the agent card:**
+For Agentory discovery, registration metadata must declare the deployed public Agent Card URL rather than a localhost address.
+
+### MCP
+
+The optional MCP server includes sample `chat`, `echo`, and `get_time` tools:
 
 ```bash
-curl http://localhost:3000/.well-known/agent-card.json
-```
-
-**3. Test the JSON-RPC endpoint:**
-
-```bash
-curl -X POST http://localhost:3000/a2a \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "method": "message/send",
-    "params": {
-      "message": {
-        "role": "user",
-        "parts": [{"type": "text", "text": "Hello!"}]
-      }
-    },
-    "id": 1
-  }'
-```
-
-## x402 Payments
-
-[x402](https://x402.org) payment support enables USDC micropayments for your agent. Available on:
-
-| Chain | Facilitator | Status |
-| ----- | ----------- | ------ |
-| Base Mainnet | [PayAI](https://facilitator.payai.network) | ✅ Production |
-| Base Sepolia | PayAI | ✅ Testnet |
-| Polygon Mainnet | PayAI | ✅ Production |
-| Polygon Amoy | PayAI | ✅ Testnet |
-| SKALE Base | PayAI | ✅ Production |
-| SKALE Base Sepolia | PayAI | ✅ Testnet |
-
-When enabled, the A2A server uses x402 middleware for micropayments:
-- Per-request pricing (default: $0.001 USDC)
-- Automatic payment verification via facilitator
-- Payment configuration in `.env`: `X402_PAYEE_ADDRESS`, `X402_PRICE`
-- 4mica only: `X402_TAB_ENDPOINT` (public tab endpoint advertised to clients)
-
-### 4mica Setup (Optional Collateral Deposit)
-
-If you select `x402 payments` and choose `4mica` during the wizard, you will be prompted:
-`Register with 4mica now (optional collateral deposit)?`
-
-If you say **yes**, the CLI will:
-- Ask for a wallet private key (or use the one it generated).
-- Ask which asset to deposit (USDC, USDT, or native token) and how much.
-- Submit an on-chain deposit via the 4mica SDK and print the transaction hash.
-
-You can safely skip this step if you are not ready to fund the wallet yet. The agent still generates and runs; you can enable 4Mica later after funding a wallet.
-
-## MCP Protocol
-
-The generated MCP server includes sample tools:
-
--   `chat` - Conversation with the LLM
--   `echo` - Echo back input (testing)
--   `get_time` - Current timestamp
-
-Add your own tools in `src/tools.ts`.
-
-### Testing Your MCP Server
-
-MCP uses stdio for communication. To test with the MCP Inspector:
-
-```bash
-# Install MCP Inspector
-npx @modelcontextprotocol/inspector
-
-# Or test directly with your MCP client
 npm run start:mcp
 ```
 
-The server will communicate over stdin/stdout following the MCP protocol.
+The generated server uses stdio. A public MCP URL should be declared in registration metadata only when an HTTP-accessible MCP gateway or hosted service actually exists.
 
-## Registration File Structure
+### x402 payments
+
+x402 is an optional capability for adding USDC payment requirements to generated agent endpoints. It is separate from agent registration and is not available on Neo X today.
+
+The current local configuration includes:
+
+| Provider | Configured networks | Role |
+| --- | --- | --- |
+| PayAI | Base mainnet/Sepolia, Polygon mainnet/Amoy, SKALE Base mainnet/Sepolia | Exact-payment middleware and facilitator |
+| 4mica | Ethereum Sepolia, Polygon Amoy | Credit-based middleware with an optional collateral deposit flow |
+
+When a selected network offers multiple providers, the wizard asks which one to use. If 4mica is selected, the CLI can optionally submit a collateral deposit after project generation. This setup is optional and does not belong to the core Quick Start.
+
+Generated payment configuration uses `X402_PAYEE_ADDRESS` and `X402_PRICE`; 4mica projects also use `X402_TAB_ENDPOINT`.
+
+## Available Web3 Registration Targets
+
+The table describes what the CLI exposes today. “Scaffold target” means project generation is available; it does not claim that Agentory currently indexes that network end to end.
+
+| Network | Environment | Registration | Readiness |
+| --- | --- | --- | --- |
+| **Neo X** | T4 testnet | ERC-8004 | Primary Agentory staging target; preflight, resumable registration, and verification |
+| Ethereum | Mainnet, Sepolia | ERC-8004 | Scaffold target |
+| Base | Mainnet, Sepolia | ERC-8004 | Scaffold target |
+| Polygon | Mainnet, Amoy | ERC-8004 | Scaffold target |
+| Avalanche | C-Chain, Fuji | ERC-8004 | Scaffold target |
+| Monad | Mainnet, testnet | ERC-8004 | Scaffold target |
+| SKALE Base | Mainnet, Sepolia | ERC-8004 | Scaffold target |
+
+Implementation libraries differ by target, but they are not part of Agentory's product-level network model.
+
+## Experimental Solana Groundwork
+
+The repository retains a configuration-only Solana Devnet implementation as groundwork for potential future support. It is not currently a supported Agentory CLI target, is not exposed through the interactive wizard, and has not been validated end to end sufficiently for normal use. See the [Solana support assessment](docs/solana-support-research.md) for the technical status.
+
+## How Agentory Uses ERC-8004
+
+ERC-8004 provides on-chain identity, reputation, and validation mechanisms for AI agents. Agentory can index an ERC-8004 identity and its public metadata to make the associated agent and services discoverable.
+
+A registration metadata document describes the agent rather than defining the agent itself. The Neo X path currently produces registration-v1 metadata shaped like:
 
 ```json
 {
@@ -273,66 +211,57 @@ The server will communicate over stdin/stdout following the MCP protocol.
   "name": "My Agent",
   "description": "An AI agent...",
   "image": "https://example.com/image.png",
-  "endpoints": [
+  "services": [
     {
       "name": "A2A",
-      "endpoint": "http://localhost:3000/.well-known/agent-card.json",
+      "endpoint": "https://agent.example/.well-known/agent-card.json",
       "version": "0.3.0"
-    },
-    {
-      "name": "MCP",
-      "endpoint": "http://localhost:3001",
-      "version": "2025-06-18"
-    },
-    {
-      "name": "agentWallet",
-      "endpoint": "eip155:11155111:0x..."
     }
   ],
+  "active": false,
+  "x402Support": false,
+  "supportedTrust": [],
   "registrations": [
     {
       "agentId": 123,
-      "agentRegistry": "eip155:11155111:0x8004..."
+      "agentRegistry": "eip155:12227332:0x8004..."
     }
-  ],
-  "supportedTrust": ["reputation", "crypto-economic", "tee-attestation"]
+  ]
 }
 ```
 
+An agent can expose A2A, MCP, OASF, x402, or other capabilities independently of how its identity is registered.
+
 ## Development
 
-### Running Tests
-
 ```bash
+npm ci
+npm run build
 npm test
 ```
 
-### x402 Paid Request Tests
+Additional checks:
 
-To run the full x402 integration tests (verifying paid requests work), you need a test wallet with testnet USDC:
-
-1. Create a `.env` file in the project root:
-```env
-TEST_PAYER_PRIVATE_KEY=0x...your_private_key...
+```bash
+npm run test:neox        # Neo X generator and registration tests
+npm run test:integration # Slow generated-project suites across configured EVM targets
+npm pack --dry-run       # Inspect the publishable package
 ```
 
-2. Fund the wallet with testnet USDC on:
-   - Base Sepolia
-   - Ethereum Sepolia
-   - Polygon Amoy
-
-If `TEST_PAYER_PRIVATE_KEY` is not set, x402 paid request tests will be skipped (other tests still run).
+Paid x402 request tests additionally require `TEST_PAYER_PRIVATE_KEY` and a funded testnet wallet. Without it, those paid cases are skipped.
 
 ## Resources
 
--   [ERC-8004 Specification](https://eips.ethereum.org/EIPS/eip-8004)
--   [8004scan Explorer](https://www.8004scan.io/) - View registered agents
--   [A2A Protocol](https://a2a-protocol.org/)
--   [Model Context Protocol](https://modelcontextprotocol.io/)
--   [x402 Protocol](https://x402.org)
--   [PayAI Facilitator](https://payai.network) - x402 facilitator for Base, Polygon
--   [4mica Facilitator](https://x402.4mica.xyz) - x402 facilitator for Ethereum Sepolia, Polygon Amoy
--   [8004-solana SDK](https://github.com/8004-ai/8004-solana) - Upstream SDK referenced by the retained experimental Solana groundwork
+- [Agentory staging](https://staging.agentory.xyz)
+- [ERC-8004 specification](https://eips.ethereum.org/EIPS/eip-8004)
+- [Neo X T4 explorer](https://xt4scan.ngd.network/)
+- [A2A protocol](https://a2a-protocol.org/)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+- [x402 protocol](https://x402.org)
+- [OASF taxonomy](https://github.com/8004-org/oasf)
+- [PayAI](https://payai.network)
+- [4mica](https://x402.4mica.xyz)
+- [8004-solana SDK](https://github.com/8004-ai/8004-solana) — referenced only by the retained experimental groundwork
 
 ## License
 

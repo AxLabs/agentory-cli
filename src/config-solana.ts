@@ -11,7 +11,7 @@ export const SOLANA_CHAINS = {
         explorer: "https://explorer.solana.com",
         explorerSuffix: "?cluster=devnet",
         programId: "HvF3JqhahcX7JfhbDRYYCJ7S3f6nJdrqu5yi9hyTREp",
-        scanPath: null, // 8004scan.io path when supported
+        scanPath: null, // No supported explorer integration for this experimental path.
         x402Network: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", // CAIP-2 for x402
     },
 } as const;

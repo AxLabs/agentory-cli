@@ -115,7 +115,7 @@ PRIVATE_KEY=${privateKeyValue}
 # RPC URL for ${chain.name}
 RPC_URL=${chain.rpcUrl}
 
-# Pinata for IPFS uploads (required for agent0-sdk)
+# Pinata for IPFS uploads (required by this registration path)
 PINATA_JWT=your_pinata_jwt_here
 
 # OpenAI API key for LLM agent
@@ -149,7 +149,7 @@ export function generateRegisterScript(answers: WizardAnswers, chain: ChainConfi
     ];
 
     return `/**
- * ERC-8004 Agent Registration Script
+ * ERC-8004 Identity Registration Script
  * 
  * Uses the Agent0 SDK (https://sdk.ag0.xyz/) for registration.
  * The SDK handles:
@@ -199,8 +199,8 @@ async function main() {
 
   const rpcUrl = process.env.RPC_URL || '${chain.rpcUrl}';
 
-  // Initialize SDK
-  console.log('🔧 Initializing Agent0 SDK...');
+  // Initialize the registration client
+  console.log('🔧 Initializing registration client...');
   const sdk = new SDK({
     chainId: ${chain.chainId},
     rpcUrl,
@@ -247,9 +247,9 @@ ${
   // agent.addDomain('technology/software_engineering');
 
   // Register on-chain with IPFS
-  console.log('⛓️  Registering agent on ${chain.name}...');
+  console.log('⛓️  Registering an ERC-8004 identity on ${chain.name}...');
   console.log('   This will:');
-  console.log('   1. Mint agent NFT on-chain');
+  console.log('   1. Create an ERC-8004 identity on-chain');
   console.log('   2. Upload metadata to IPFS');
   console.log('   3. Set agent URI on-chain');
   console.log('');
@@ -266,18 +266,10 @@ ${
 
   // Output results
   console.log('');
-  console.log('✅ Agent registered successfully!');
+  console.log('✅ ERC-8004 identity registered successfully!');
   console.log('');
   console.log('🆔 Agent ID:', result.agentId);
-  console.log('📄 Agent URI:', result.agentURI);${
-      chain.scanPath
-          ? `
-  console.log('');
-  console.log('🌐 View your agent on 8004scan:');
-  const agentIdNum = result.agentId?.split(':')[1] || result.agentId;
-  console.log(\`   https://www.8004scan.io/agents/${chain.scanPath}/\${agentIdNum}\`);`
-          : ""
-  }
+  console.log('📄 Agent URI:', result.agentURI);
   console.log('');
   console.log('📋 Next steps:');
   console.log('   1. Update AGENT_CONFIG endpoints with your production URLs');
@@ -306,7 +298,7 @@ export function generateAgentTs(answers: WizardAnswers): string {
 export async function* streamResponse(userMessage: string, history: AgentMessage[] = []): AsyncGenerator<string> {
   const systemPrompt: AgentMessage = {
     role: 'system',
-    content: 'You are a helpful AI assistant registered on the ERC-8004 protocol. Be concise and helpful.',
+    content: 'You are a helpful AI assistant. Be concise and helpful.',
   };
 
   const messages: AgentMessage[] = [
@@ -400,7 +392,7 @@ export async function generateResponse(userMessage: string, history: AgentMessag
   // Customize this to match your agent's purpose
   const systemPrompt: AgentMessage = {
     role: 'system',
-    content: 'You are a helpful AI assistant registered on the ERC-8004 protocol. Be concise and helpful.',
+    content: 'You are a helpful AI assistant. Be concise and helpful.',
   };
 
   // Build the full message array: system prompt + history + new message
@@ -450,8 +442,10 @@ OPENAI_API_KEY=your_openai_key
 
 ### 3. Fund your wallet
 
-Your agent wallet: \`${answers.agentWallet}\`
+Fund the signing wallet configured by \`PRIVATE_KEY\`.
 ${getFundingInstructions(chain)}
+
+ERC-8004 agent wallet to associate with the identity: \`${answers.agentWallet}\`
 
 ### 4. Register on-chain
 
@@ -461,8 +455,8 @@ npm run register
 
 This will:
 - Upload your agent metadata to IPFS
-- Register your agent on ${chain.name}
-- Output your agent ID and 8004scan link
+- Register an ERC-8004 identity on ${chain.name}
+- Output the identity's agent ID and metadata URI
 ${
     hasA2A
         ? `
@@ -545,24 +539,19 @@ Browse the full taxonomy: https://schema.oasf.outshift.com/0.8.0
 
 ## Going Live
 
-By default, your agent is registered with \`active: false\`. This is intentional - it lets you test without appearing in explorer listings.
+By default, registration metadata uses \`active: false\`. This lets you test before advertising the agent as discoverable.
 
-When you're ready for production:
-1. Edit \`src/register.ts\` and change \`agent.setActive(false)\` to \`agent.setActive(true)\`
-2. Re-run \`npm run register\` to update your agent's metadata
+This generated project does not provide a target-safe metadata update command. Do not assume that rerunning \`npm run register\` updates the existing identity.
 
 ## Next Steps
 
 1. Update the endpoint URLs in \`src/register.ts\` with your production domain
 2. Customize the agent logic in \`src/agent.ts\`
 3. Deploy to a cloud provider (Vercel, Railway, etc.)
-4. Re-run \`npm run register\` if you change metadata
 
 ## Resources
 
 - [ERC-8004 Standard](https://eips.ethereum.org/EIPS/eip-8004)
-- [8004scan Explorer](https://www.8004scan.io/)
-- [Agent0 SDK Docs](https://sdk.ag0.xyz/)
 - [OASF Taxonomy](https://github.com/8004-org/oasf)
 `;
 }

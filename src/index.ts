@@ -72,7 +72,7 @@ function printNextSteps(answers: WizardAnswers, isSolana: boolean, neox: boolean
             console.log(chalk.gray("   - Set NEOFS_REST_GATEWAY, NEOFS_CONTAINER_ID, and NEOFS_PUBLIC_GATEWAY"));
             console.log(chalk.gray("   - Set NEOFS_BEARER_TOKEN only when the container requires it"));
         }
-        console.log(chalk.gray("   - Pinata and OpenAI are not required for Neo X identity registration"));
+        console.log(chalk.gray("   - Pinata and OpenAI are not required for Neo X Web3 registration"));
     } else {
         if (!answers.generatedPrivateKey) {
             console.log(chalk.gray(`   - Add ${isSolana ? "SOLANA_PRIVATE_KEY" : "PRIVATE_KEY"}`));
@@ -90,8 +90,8 @@ function printNextSteps(answers: WizardAnswers, isSolana: boolean, neox: boolean
         console.log(chalk.bold.white(`${step}. Fund your wallet with Neo X T4 ${NEOX_T4_NATIVE_CURRENCY.symbol}`));
         console.log(chalk.gray(`   → ${NEOX_T4_FAUCET_URL}\n`));
     } else {
-        console.log(chalk.bold.white(`${step}. Fund your wallet with testnet ETH`));
-        console.log(chalk.gray("   → https://cloud.google.com/application/web3/faucet/ethereum/sepolia\n"));
+        console.log(chalk.bold.white(`${step}. Fund the signing wallet`));
+        console.log(chalk.gray("   → Use the selected network's native gas token; see the generated README.\n"));
     }
     step++;
 
@@ -116,7 +116,7 @@ function printNextSteps(answers: WizardAnswers, isSolana: boolean, neox: boolean
         console.log(chalk.gray("   Registration is resumable. A completed project will not mint again."));
         console.log(chalk.gray("   Explorer: https://xt4scan.ngd.network\n"));
     } else {
-        console.log(chalk.bold.white(`${step}. Register your agent on-chain`));
+        console.log(chalk.bold.white(`${step}. Register the agent's Web3 identity`));
         console.log(chalk.cyan("   npm run register\n"));
     }
 
@@ -135,7 +135,7 @@ async function generateFromAnswers(answers: WizardAnswers, skipInstall: boolean)
     await generateProject(answers);
     const isSolana = isSolanaChain(answers.chain);
     const neox = isNeoxChain(answers.chain);
-    spinner.succeed(chalk.green(`${isSolana ? "8004" : "ERC-8004"} Agent generated successfully!`));
+    spinner.succeed(chalk.green("Agentory project generated successfully!"));
 
     if (!skipInstall) {
         const installDir = answers.projectDir === "." ? process.cwd() : answers.projectDir;
@@ -159,9 +159,9 @@ async function generateFromAnswers(answers: WizardAnswers, skipInstall: boolean)
 }
 
 async function main() {
-    console.log(chalk.bold.cyan("\n🤖 8004 Agent Generator\n"));
-    console.log(chalk.gray("Create a trustless AI agent with A2A, MCP, and x402 support\n"));
-    console.log(chalk.gray("Supports EVM chains, including Neo X T4\n"));
+    console.log(chalk.bold.cyan("\n🤖 Agentory CLI\n"));
+    console.log(chalk.gray("Create an AI agent project and its Web3 registration flow\n"));
+    console.log(chalk.gray("Primary staging path: Neo X (T4 testnet)\n"));
 
     try {
         const { configPath, skipInstall } = parseArgs(process.argv.slice(2));

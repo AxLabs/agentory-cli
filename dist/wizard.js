@@ -69,7 +69,7 @@ export async function runWizard() {
         {
             type: "list",
             name: "chain",
-            message: "Blockchain network:",
+            message: "Web3 registration network:",
             choices: [
                 new inquirer.Separator("── Mainnets ──"),
                 ...Object.entries(CHAINS)
@@ -96,7 +96,12 @@ export async function runWizard() {
         {
             type: "input",
             name: "agentWallet",
-            message: "Agent wallet address (leave empty to generate new):",
+            message: (answers) => {
+                if (answers?.chain === "neox-t4" || answers?.chain?.startsWith("monad-")) {
+                    return "Wallet address (not recorded by this target; leave empty to generate the signing wallet):";
+                }
+                return "ERC-8004 agent wallet address (leave empty to generate one wallet for signing and association):";
+            },
             validate: (input, answers) => {
                 if (input === "")
                     return true;
@@ -112,7 +117,7 @@ export async function runWizard() {
         {
             type: "list",
             name: "metadataStorage",
-            message: "ERC-8004 metadata storage:",
+            message: "Registration metadata storage (Neo X T4):",
             choices: [
                 { name: "Inline data URI (no external storage required)", value: "inline" },
                 { name: "NeoFS REST gateway (requires gateway and container configuration)", value: "neofs" },
@@ -174,7 +179,7 @@ export async function runWizard() {
         {
             type: "input",
             name: "a2aEndpoint",
-            message: "Public A2A agent-card URL (ERC-8004 metadata):",
+            message: "Public A2A Agent Card URL for registration metadata:",
             default: defaultA2aAgentCardEndpoint(),
             when: (ans) => isNeoxChain(ans.chain ?? "") && (ans.features?.includes("a2a") ?? false),
             validate: (input) => {
@@ -185,7 +190,7 @@ export async function runWizard() {
         {
             type: "input",
             name: "mcpEndpoint",
-            message: "Public MCP HTTP endpoint for ERC-8004 discovery (optional; leave blank for stdio-only MCP):",
+            message: "Public MCP HTTP endpoint for registration metadata (optional; leave blank for stdio-only MCP):",
             when: (ans) => isNeoxChain(ans.chain ?? "") && (ans.features?.includes("mcp") ?? false),
             validate: (input) => {
                 const result = validateOptionalRegistrationServiceEndpoint("MCP", input);
@@ -195,19 +200,19 @@ export async function runWizard() {
         {
             type: "input",
             name: "oasfSkills",
-            message: "OASF skills for on-chain metadata (optional, comma/newline separated):",
+            message: "OASF skills for registration metadata (optional, comma/newline separated):",
             when: (ans) => isNeoxChain(ans.chain ?? ""),
         },
         {
             type: "input",
             name: "oasfDomains",
-            message: "OASF domains for on-chain metadata (optional, comma/newline separated):",
+            message: "OASF domains for registration metadata (optional, comma/newline separated):",
             when: (ans) => isNeoxChain(ans.chain ?? ""),
         },
         {
             type: "input",
             name: "oasfEndpoint",
-            message: "OASF service/resource endpoint for ERC-8004 metadata (optional):",
+            message: "OASF service/resource endpoint for registration metadata (optional):",
             when: (ans) => isNeoxChain(ans.chain ?? "") &&
                 Boolean(ans.oasfSkills?.trim() || ans.oasfDomains?.trim()),
             validate: (input) => {
@@ -218,7 +223,7 @@ export async function runWizard() {
         {
             type: "checkbox",
             name: "trustModels",
-            message: "Supported trust models:",
+            message: "ERC-8004 trust declarations:",
             choices: TRUST_MODELS.map((model) => ({ name: model, value: model, checked: model === "reputation" })),
         },
     ]);

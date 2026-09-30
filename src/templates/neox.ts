@@ -218,9 +218,8 @@ export function generateNeoxReadme(answers: WizardAnswers, chain: ChainConfig): 
 
 ${answers.agentDescription}
 
-This project registers an ERC-8004 identity on **${chain.name}** using direct viem contract calls.
-x402 payments, Agent0 SDK, Pinata, and OpenAI are not required for this fixture path.
-There is no 8004scan route for Neo X; use the Neo X T4 explorer.
+This project registers an ERC-8004 identity on **${chain.name}** through a guarded, resumable flow.
+Pinata is not required. OpenAI is needed only when the generated agent runtime uses A2A or MCP capabilities.
 
 ## Network
 
@@ -292,12 +291,8 @@ This:
 
 Selected capabilities are declared under \`services\` in registration-v1 metadata (see \`src/agent-config.ts\`).
 Endpoints are self-declared — deploy or configure the real public URLs before registering.
-After Agentory indexes your agent, discovery examples:
-
-\`\`\`text
-GET https://agentory.xyz/api/agents?service=A2A
-GET https://agentory.xyz/api/agents?service=MCP
-\`\`\`
+After Agentory indexes the registration, find and inspect the agent in [Agentory staging](https://staging.agentory.xyz).
+The Neo X T4 explorer confirms transactions; Agentory staging confirms that the agent has been indexed for discovery.
 
 Compact metadata also sets \`active: false\`, \`x402Support: false\`, and \`supportedTrust: []\`.
 
