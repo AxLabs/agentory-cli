@@ -8,7 +8,8 @@ The TypeScript ESM CLI starts in `src/index.ts`. Interactive and JSON-configured
 
 ## Repository-Specific Constraints
 
-- Use npm for this repository's install, test, build, and packaging workflow; keep `package-lock.json` consistent with `package.json`. The supported runtime is Node.js 18 or newer, while CI uses Node.js 20.
+- npm and `package-lock.json` are authoritative for this repository's install, test, build, and packaging workflow; keep the lockfile consistent with `package.json` and do not migrate package managers. The supported runtime is Node.js 18 or newer, while CI uses Node.js 20.
+- This is a public repository. Keep all committed content suitable for public consumption: do not add credentials or secrets, private repository references, internal infrastructure details, private issue or project information, non-public AxLabs planning or product context, or other internal-only information. Public AxLabs names and resources are appropriate when relevant.
 - Treat generated project contents as product behavior. Change generators and templates under `src/`, then run `npm run build`; `dist/` is tracked, is the CLI entry point, and is the only directory shipped by the npm package.
 - Preserve the generator routing boundaries: ordinary EVM chains use the base templates, Monad and Neo X use direct contract-call templates, Solana uses its dedicated SDK templates, and A2A/MCP generation remains shared.
 - Preserve the Neo X T4 safety invariants: preflight is read-only; writes require chain ID `12227332`; mainnet writes are refused; the configured registry is validated; retries reuse the minted agent ID and persisted transaction state instead of minting again; metadata is reused only when its canonical content, URI, and storage backend are current.
