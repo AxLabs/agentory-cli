@@ -58,3 +58,13 @@ Before changing architecture, ownership, compatibility, or established product b
 - `tests/chains/` and `tests/utils/chain-test-factory.ts`: slow generated-project and service integration coverage across supported chains.
 - `docs/neox-t4-demo.md`: operational runbook for the Neo X T4 and NeoFS demo flow.
 - `docs/decisions/`: durable repository-specific architectural and behavioral decisions.
+
+<!-- BEGIN AXLABS MANAGED: git-and-review-conventions -->
+## Git and review conventions
+
+- Follow Conventional Commits for commit messages (for example, `feat: add user-provided metadata URI`). Describe the change rather than the tool that produced it, and keep each commit focused. https://www.conventionalcommits.org/en/v1.0.0/
+- Name branches for the change. Prefer a concise prefix such as `feat/`, `fix/`, `docs/`, `refactor/`, or `chore/` (for example, `feat/user-provided-metadata-uri`). These prefixes are an AxLabs branch convention, not part of Conventional Commits. Do not put an AI assistant, IDE, or other tool name in branch names or commit messages.
+- Use the Git identity configured for the developer or autonomous worker performing the work. Do not substitute an AI assistant, IDE, or development tool as the Git author, committer, or co-author merely because it created or committed the change. Preserve legitimate human co-authorship and repository-required trailers such as `Signed-off-by` or `Change-Id`. Do not rewrite existing Git history to apply this policy.
+- When producing structured review feedback, use Conventional Comments (`label (decoration): summary`) and its standard vocabulary. Do not invent a repository-local review taxonomy unless the repository explicitly defines one. https://conventionalcomments.org/
+- Follow more specific repository-owned Git or review instructions where they do not conflict with these managed conventions.
+<!-- END AXLABS MANAGED: git-and-review-conventions -->

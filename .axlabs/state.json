@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "managedFiles": {
     ".axlabs/INITIALIZE.md": "sha256:2cde3ccc7bac3e42fc6f035dc524ee3fb3f622288975b1b61b75da09581deb82",
     "docs/decisions/README.md": "sha256:df6b195675c38440ce0e2083d13b3dfd5b2cf2713ea42cbd9c4705e76e09046e",
@@ -8,7 +8,8 @@
   "managedBlocks": {
     "AGENTS.md": {
       "durable-context-guidance": "sha256:6fb7cb6100e6700767ac4150ecdde0b8be85a92bff6ec9fef01be61b5d51a3c0",
-      "repository-initialization-guidance": "sha256:9e75ae102463e71150b3a9730a3e3b036ec4c233199e7a40389dc9689d5f9a3f"
+      "repository-initialization-guidance": "sha256:9e75ae102463e71150b3a9730a3e3b036ec4c233199e7a40389dc9689d5f9a3f",
+      "git-and-review-conventions": "sha256:2a7999e81e8c9a60473d43b1264a10d25c2e6ea23c9d2be0b32a317613b67775"
     }
   }
 }
