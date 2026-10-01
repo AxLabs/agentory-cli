@@ -35,4 +35,13 @@ export declare const METADATA_STORAGE_CHOICES: readonly [{
     readonly value: "uri";
 }];
 export declare const DEFAULT_METADATA_STORAGE: "managed";
+/** Non-Neo X EVM chains keep their existing upload path unless the user chooses a URI. */
+export declare const EVM_METADATA_STORAGE_CHOICES: readonly [{
+    readonly name: "Upload with Pinata";
+    readonly value: "inline";
+}, {
+    readonly name: "Use my own URI";
+    readonly value: "uri";
+}];
+export declare const DEFAULT_EVM_METADATA_STORAGE: "inline";
 export declare function runWizard(): Promise<WizardAnswers>;

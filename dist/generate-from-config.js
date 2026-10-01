@@ -3,6 +3,7 @@ import path from "node:path";
 import { CHAINS } from "./config.js";
 import { isSolanaChain } from "./config-solana.js";
 import { isNeoxChain } from "./neox/constants.js";
+import { assertRegistrationMetadataUri } from "./neox/metadata.js";
 import { DEFAULT_METADATA_STORAGE } from "./wizard.js";
 export function wizardAnswersFromConfig(raw) {
     if (!raw.projectDir || !raw.agentName || !raw.agentDescription || !raw.chain) {
@@ -15,13 +16,15 @@ export function wizardAnswersFromConfig(raw) {
     if (!["managed", "uri", "inline", "neofs"].includes(metadataStorage)) {
         throw new Error(`Unsupported metadataStorage "${raw.metadataStorage}". Use managed, uri, inline, or neofs.`);
     }
-    const metadataUri = raw.metadataUri?.trim() || undefined;
-    if (metadataStorage === "uri" && !metadataUri) {
-        throw new Error("metadataUri is required when metadataStorage is \"uri\"");
+    if (metadataStorage === "uri" && isSolanaChain(raw.chain)) {
+        throw new Error('metadataStorage "uri" is not supported for Solana projects');
     }
-    if (metadataUri && /\s/.test(metadataUri)) {
-        throw new Error("metadataUri cannot contain whitespace");
+    if (raw.metadataUri && metadataStorage !== "uri") {
+        throw new Error('metadataUri requires metadataStorage: "uri"');
     }
+    const metadataUri = metadataStorage === "uri"
+        ? assertRegistrationMetadataUri(raw.metadataUri)
+        : undefined;
     return {
         projectDir: raw.projectDir,
         agentName: raw.agentName,

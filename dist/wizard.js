@@ -7,6 +7,7 @@ import bs58 from "bs58";
 import { CHAINS, TRUST_MODELS } from "./config.js";
 import { isSolanaChain } from "./config-solana.js";
 import { isNeoxChain } from "./neox/constants.js";
+import { validateRegistrationMetadataUri } from "./neox/metadata.js";
 import { defaultA2aAgentCardEndpoint, parseOasfTaxonomyInput, validateOptionalRegistrationServiceEndpoint, validateRegistrationServiceEndpoint, } from "./neox/services.js";
 function getAvailableDir(baseDir) {
     if (baseDir === ".")
@@ -39,6 +40,12 @@ export const METADATA_STORAGE_CHOICES = [
     { name: "Use my own URI", value: "uri" },
 ];
 export const DEFAULT_METADATA_STORAGE = "managed";
+/** Non-Neo X EVM chains keep their existing upload path unless the user chooses a URI. */
+export const EVM_METADATA_STORAGE_CHOICES = [
+    { name: "Upload with Pinata", value: "inline" },
+    { name: "Use my own URI", value: "uri" },
+];
+export const DEFAULT_EVM_METADATA_STORAGE = "inline";
 function getDefaultX402Provider(chainKey) {
     if (!chainKey || isSolanaChain(chainKey))
         return undefined;
@@ -129,17 +136,21 @@ export async function runWizard() {
             when: (ans) => ans.chain === "neox-t4",
         },
         {
+            type: "list",
+            name: "metadataStorage",
+            message: "Registration metadata:",
+            choices: [...EVM_METADATA_STORAGE_CHOICES],
+            default: DEFAULT_EVM_METADATA_STORAGE,
+            when: (ans) => Boolean(ans.chain) && ans.chain !== "neox-t4" && !isSolanaChain(ans.chain),
+        },
+        {
             type: "input",
             name: "metadataUri",
             message: "Registration metadata URI you already host:",
-            when: (ans) => ans.chain === "neox-t4" && ans.metadataStorage === "uri",
+            when: (ans) => ans.metadataStorage === "uri",
             validate: (input) => {
-                const value = input.trim();
-                if (!value)
-                    return "Enter the registration metadata URI";
-                if (/\s/.test(value))
-                    return "The URI cannot contain whitespace";
-                return true;
+                const result = validateRegistrationMetadataUri(input);
+                return result.ok || result.message;
             },
         },
         {
@@ -298,7 +309,7 @@ export async function runWizard() {
         generatedPrivateKey,
         x402Provider,
         metadataStorage: answers.metadataStorage ?? (isNeoxChain(answers.chain) ? DEFAULT_METADATA_STORAGE : "inline"),
-        metadataUri: answers.metadataUri?.trim() || undefined,
+        metadataUri: answers.metadataStorage === "uri" ? answers.metadataUri : undefined,
         // Default to false if A2A not selected (question was skipped)
         a2aStreaming: answers.a2aStreaming ?? false,
         a2aEndpoint: answers.a2aEndpoint,

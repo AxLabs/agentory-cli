@@ -2,6 +2,74 @@ import { createHash } from "node:crypto";
 import { agentRegistryCaip, NEOX_T4_CHAIN_ID, REGISTRATION_V1_TYPE } from "./constants.js";
 import { normalizeAgentServices } from "./services.js";
 const DATA_JSON_PREFIX = "data:application/json;base64,";
+export const REGISTRATION_URI_MAX_LENGTH = 2048;
+const SUPPORTED_REGISTRATION_URI_PROTOCOLS = new Set(["https:", "ipfs:", "neofs:"]);
+/**
+ * Validate syntax only. The accepted value is returned unchanged: this does not
+ * fetch, normalize, or rewrite a user-managed registration metadata URI.
+ */
+export function validateRegistrationMetadataUri(value) {
+    if (!value) {
+        return { ok: false, message: "Registration metadata URI is required" };
+    }
+    if (value !== value.trim()) {
+        return {
+            ok: false,
+            message: "Registration metadata URI must not contain leading or trailing whitespace",
+        };
+    }
+    if (value.length > REGISTRATION_URI_MAX_LENGTH) {
+        return {
+            ok: false,
+            message: `Registration metadata URI must be at most ${REGISTRATION_URI_MAX_LENGTH} characters`,
+        };
+    }
+    if (/\s|[<>]/.test(value)) {
+        return {
+            ok: false,
+            message: "Registration metadata URI contains invalid characters",
+        };
+    }
+    let parsed;
+    try {
+        parsed = new URL(value);
+    }
+    catch {
+        return {
+            ok: false,
+            message: "Enter a valid https://, ipfs://, or neofs: registration metadata URI",
+        };
+    }
+    if (!SUPPORTED_REGISTRATION_URI_PROTOCOLS.has(parsed.protocol)) {
+        return {
+            ok: false,
+            message: "Registration metadata URI must use https://, ipfs://, or neofs:",
+        };
+    }
+    if (parsed.username || parsed.password) {
+        return {
+            ok: false,
+            message: "Registration metadata URI must not contain embedded credentials",
+        };
+    }
+    if (parsed.protocol === "https:" && !parsed.hostname) {
+        return { ok: false, message: "HTTPS registration metadata URI must include a host" };
+    }
+    if (parsed.protocol === "ipfs:" && !parsed.hostname) {
+        return { ok: false, message: "IPFS registration metadata URI must include a CID" };
+    }
+    if (parsed.protocol === "neofs:" && !value.slice("neofs:".length).replace(/^\/*/, "")) {
+        return { ok: false, message: "NeoFS registration metadata URI must include an object reference" };
+    }
+    return { ok: true, value };
+}
+export function assertRegistrationMetadataUri(value) {
+    const result = validateRegistrationMetadataUri(value ?? "");
+    if (!result.ok) {
+        throw new Error(result.message);
+    }
+    return result.value;
+}
 export function agentIdToDecimalString(agentId) {
     return agentId.toString(10);
 }

@@ -111,11 +111,12 @@ export interface VerificationResult {
     owner: Address;
     agentWallet: Address;
     tokenURI: string;
-    decodedMetadata: AgentRegistrationMetadata;
-    metadataMatches: boolean;
-    registrationRefMatches: boolean;
+    /** Absent when verification checks the user-supplied URI without fetching its contents. */
+    decodedMetadata?: AgentRegistrationMetadata;
+    metadataMatches?: boolean;
+    registrationRefMatches?: boolean;
     metadataStorage: PublishedMetadata;
-    servicesMatch: boolean;
+    servicesMatch?: boolean;
     expectedServices: AgentService[];
 }
 
@@ -128,7 +129,7 @@ export interface SecretFreeRegistrationResult {
     finalURI: string;
     agentURI: string;
     metadataStorage: PublishedMetadata;
-    decodedMetadata: AgentRegistrationMetadata;
+    decodedMetadata?: AgentRegistrationMetadata;
     transactionHashes: {
         register?: Hex;
         setAgentURI?: Hex;

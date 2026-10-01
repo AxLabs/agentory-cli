@@ -1,3 +1,4 @@
+import { assertRegistrationMetadataUri } from "../metadata.js";
 import { MANAGED_URI_GAS_ESTIMATE } from "./neofs-uri.js";
 import { InlineMetadataStorage } from "./inline.js";
 import { ManagedMetadataStorage, resolveAgentoryApiBaseUrl } from "./managed.js";
@@ -42,11 +43,7 @@ export function uriForStoragePreflight(config) {
         return MANAGED_URI_GAS_ESTIMATE;
     }
     if (backend === "uri") {
-        const uri = config.metadataUri?.trim();
-        if (!uri) {
-            throw new Error("metadataUri is required when metadataStorage is \"uri\"");
-        }
-        return uri;
+        return assertRegistrationMetadataUri(config.metadataUri);
     }
     const storageConfig = validateNeofsStorageConfig({
         restGateway: process.env.NEOFS_REST_GATEWAY ?? "",

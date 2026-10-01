@@ -115,10 +115,10 @@ PRIVATE_KEY=${privateKeyValue}
 # RPC URL for ${chain.name}
 RPC_URL=${chain.rpcUrl}
 
-# Pinata for IPFS uploads (required by this registration path)
+${answers.metadataStorage === "uri" ? "" : `# Pinata for IPFS uploads (required by this registration path)
 PINATA_JWT=your_pinata_jwt_here
 
-# OpenAI API key for LLM agent
+`}# OpenAI API key for LLM agent
 OPENAI_API_KEY=your_openai_api_key_here
 `;
 
@@ -140,6 +140,8 @@ export function generateRegisterScript(answers: WizardAnswers, chain: ChainConfi
     const hasA2A = hasFeature(answers, "a2a");
     const hasMCP = hasFeature(answers, "mcp");
     const hasX402 = hasFeature(answers, "x402");
+    const usesOwnUri = answers.metadataStorage === "uri";
+    const metadataUri = answers.metadataUri ?? "";
 
     // Build trust model arguments
     const trustArgs = [
@@ -153,14 +155,12 @@ export function generateRegisterScript(answers: WizardAnswers, chain: ChainConfi
  * 
  * Uses the Agent0 SDK (https://sdk.ag0.xyz/) for registration.
  * The SDK handles:
- * - Two-step registration flow (mint → upload → setAgentURI)
- * - IPFS uploads via Pinata
+ * - User-signed ERC-8004 registration and URI updates
  * - Proper metadata format with registrations array
  * 
  * Requirements:
  * - PRIVATE_KEY in .env (wallet with ETH for gas)
- * - PINATA_JWT in .env (for IPFS uploads)
- * - RPC_URL in .env (optional, defaults to public endpoint)
+${usesOwnUri ? "" : " * - PINATA_JWT in .env (for IPFS uploads)\n"} * - RPC_URL in .env (optional, defaults to public endpoint)
  * 
  * Run with: npm run register
  */
@@ -180,7 +180,11 @@ const AGENT_CONFIG = {
   a2aEndpoint: 'https://${agentSlug}.example.com/.well-known/agent-card.json',
   mcpEndpoint: 'https://${agentSlug}.example.com/mcp',
 };
-
+${usesOwnUri ? `
+// Registered exactly as supplied. This script does not fetch, upload,
+// normalize, or rewrite the user-managed metadata it references.
+const USER_PROVIDED_AGENT_URI = ${JSON.stringify(metadataUri)};
+` : ""}
 // ============================================================================
 // Main Registration Flow
 // ============================================================================
@@ -192,21 +196,21 @@ async function main() {
     throw new Error('PRIVATE_KEY not set in .env');
   }
 
-  const pinataJwt = process.env.PINATA_JWT;
+${usesOwnUri ? "" : `  const pinataJwt = process.env.PINATA_JWT;
   if (!pinataJwt) {
     throw new Error('PINATA_JWT not set in .env');
   }
 
-  const rpcUrl = process.env.RPC_URL || '${chain.rpcUrl}';
+`}  const rpcUrl = process.env.RPC_URL || '${chain.rpcUrl}';
 
   // Initialize the registration client
   console.log('🔧 Initializing registration client...');
   const sdk = new SDK({
     chainId: ${chain.chainId},
     rpcUrl,
-    signer: privateKey,
+    signer: privateKey,${usesOwnUri ? "" : `
     ipfs: 'pinata',
-    pinataJwt,
+    pinataJwt,`}
   });
 
   // Create agent
@@ -250,11 +254,11 @@ ${
   console.log('⛓️  Registering an ERC-8004 identity on ${chain.name}...');
   console.log('   This will:');
   console.log('   1. Create an ERC-8004 identity on-chain');
-  console.log('   2. Upload metadata to IPFS');
+${usesOwnUri ? "  console.log('   2. Register your existing metadata URI unchanged');\n" : `  console.log('   2. Upload metadata to IPFS');
   console.log('   3. Set agent URI on-chain');
-  console.log('');
+`}  console.log('');
 
-  const txHandle = await agent.registerIPFS();
+  const txHandle = await agent.${usesOwnUri ? "registerHTTP(USER_PROVIDED_AGENT_URI)" : "registerIPFS()"};
   const { result } = await txHandle.waitMined();
 
   // Set agent wallet via ERC-8004 v2 setAgentWallet() (not deprecated metadata)
@@ -411,6 +415,7 @@ export function generateReadme(answers: WizardAnswers, chain: ChainConfig): stri
     const hasA2A = hasFeature(answers, "a2a");
     const hasMCP = hasFeature(answers, "mcp");
     const hasX402 = hasFeature(answers, "x402");
+    const usesOwnUri = answers.metadataStorage === "uri";
     const x402Provider = hasX402 ? getX402Provider(answers, chain) : null;
 
     return `# ${answers.agentName}
@@ -433,10 +438,10 @@ Edit \`.env\` and add your API keys:
 # Already set if wallet was auto-generated
 PRIVATE_KEY=your_private_key
 
-# Get from https://pinata.cloud (free tier works)
+${usesOwnUri ? "" : `# Get from https://pinata.cloud (free tier works)
 PINATA_JWT=your_pinata_jwt
 
-# Get from https://platform.openai.com
+`}# Get from https://platform.openai.com
 OPENAI_API_KEY=your_openai_key
 \`\`\`
 
@@ -454,9 +459,13 @@ npm run register
 \`\`\`
 
 This will:
-- Upload your agent metadata to IPFS
-- Register an ERC-8004 identity on ${chain.name}
+${usesOwnUri ? `- Register your existing metadata URI unchanged: \`${answers.metadataUri}\`
+- Make no metadata upload or storage-provider API call
+` : "- Upload your agent metadata to IPFS\n"}- Register an ERC-8004 identity on ${chain.name}
 - Output the identity's agent ID and metadata URI
+${usesOwnUri ? `
+You are responsible for keeping the referenced metadata publicly readable and correct. Treat published metadata as immutable: when its contents change, publish a new versioned URI rather than relying on mutable content at the old URI. Registration validates URI syntax locally but does not fetch or verify the remote contents.
+` : ""}
 ${
     hasA2A
         ? `

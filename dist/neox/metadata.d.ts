@@ -1,4 +1,18 @@
 import type { AgentProjectConfig, AgentRegistrationMetadata } from "./types.js";
+export declare const REGISTRATION_URI_MAX_LENGTH = 2048;
+export type RegistrationUriValidation = {
+    ok: true;
+    value: string;
+} | {
+    ok: false;
+    message: string;
+};
+/**
+ * Validate syntax only. The accepted value is returned unchanged: this does not
+ * fetch, normalize, or rewrite a user-managed registration metadata URI.
+ */
+export declare function validateRegistrationMetadataUri(value: string): RegistrationUriValidation;
+export declare function assertRegistrationMetadataUri(value: string | undefined): string;
 export declare function agentIdToDecimalString(agentId: bigint): string;
 export declare function parseAgentId(value: string | number | bigint): bigint;
 /**

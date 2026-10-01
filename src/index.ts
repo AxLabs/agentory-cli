@@ -83,7 +83,12 @@ function printNextSteps(answers: WizardAnswers, isSolana: boolean, neox: boolean
             console.log(chalk.gray(`   - Add ${isSolana ? "SOLANA_PRIVATE_KEY" : "PRIVATE_KEY"}`));
         }
         console.log(chalk.gray("   - Add OPENAI_API_KEY"));
-        console.log(chalk.gray("   - Add PINATA_JWT (get one at pinata.cloud)"));
+        if (answers.metadataStorage === "uri") {
+            console.log(chalk.gray("   - The metadata URI in the generated project is registered as-is"));
+            console.log(chalk.gray("   - Pinata is not required for this registration path"));
+        } else {
+            console.log(chalk.gray("   - Add PINATA_JWT (get one at pinata.cloud)"));
+        }
     }
     console.log("");
     step++;

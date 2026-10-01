@@ -178,7 +178,7 @@ import { NEOX_T4_IDENTITY_REGISTRY } from "./neox/constants.js";
 
 /**
  * Edit \`services[].endpoint\` (and optional OASF fields) before \`npm run register\`.
- * These values are written into ERC-8004 registration-v1 metadata at setAgentURI time.
+ * ${answers.metadataStorage === "uri" ? "Keep these declarations aligned with your user-managed metadata; the CLI does not rewrite its contents." : "These values are written into ERC-8004 registration-v1 metadata at setAgentURI time."}
  */
 export const AGENT_PROJECT_CONFIG: AgentProjectConfig = {
   name: ${JSON.stringify(answers.agentName)},
@@ -266,7 +266,11 @@ Staging/development example, for Neo X T4:
 \`\`\`env
 AGENTORY_API_BASE_URL=https://staging.agentory.xyz
 \`\`\`
-` : userUri ? `This project registers the metadata URI already in \`src/agent-config.ts\`. The CLI does not upload that document and does not read \`AGENTORY_API_BASE_URL\`. You are responsible for hosting the document, keeping it publicly readable, and changing the URI when the document changes.
+` : userUri ? `This project registers the metadata URI already in \`src/agent-config.ts\`:
+
+\`${answers.metadataUri}\`
+
+The URI is registered exactly as supplied. The CLI validates its syntax locally but does not fetch, upload, normalize, rewrite, or remotely verify the referenced contents. It does not read \`AGENTORY_API_BASE_URL\` and does not ask for a NeoFS, Pinata, or IPFS credential. You are responsible for public readability, correct ERC-8004 metadata, and availability. Treat metadata as immutable: publish a new versioned URI when contents change rather than mutating content at the registered URI.
 ` : neofs ? `This project publishes metadata to NeoFS. Configure the existing container and gateways in \`.env\`:
 
 \`\`\`env
@@ -304,17 +308,17 @@ npm run register
 This:
 
 1. Calls parameterless \`register()\` and decodes \`Registered\` from that receipt (agent ID 0 is valid).
-2. ${managed ? "Sends the registration-v1 JSON to Agentory after minting and uses the returned `neofs:<containerId>/<objectId>` URI unchanged." : userUri ? "Uses the configured metadata URI unchanged and does not upload it." : neofs ? "Uploads compact registration-v1 JSON to NeoFS, reads it back through the public gateway, and persists the object IDs." : "Encodes compact registration-v1 metadata as a `data:application/json;base64,` URI."}
+2. ${managed ? "Sends the registration-v1 JSON to Agentory after minting and uses the returned `neofs:<containerId>/<objectId>` URI unchanged." : userUri ? "Uses the configured metadata URI unchanged. There is no upload and no storage-provider API call." : neofs ? "Uploads compact registration-v1 JSON to NeoFS, reads it back through the public gateway, and persists the object IDs." : "Encodes compact registration-v1 metadata as a `data:application/json;base64,` URI."}
 3. Calls \`setAgentURI(agentId, uri)\`.
 4. Persists transaction hashes immediately and resumes metadata publication if minting already succeeded.
 5. Refuses to mint a second identity once this project has completed.
 
-Selected capabilities are declared under \`services\` in registration-v1 metadata (see \`src/agent-config.ts\`).
+${userUri ? "Selected capabilities must already be present in the user-managed registration metadata. Keep them aligned with `services` in `src/agent-config.ts`; the CLI does not add or rewrite them." : "Selected capabilities are declared under `services` in registration-v1 metadata (see `src/agent-config.ts`)."}
 Endpoints are self-declared — deploy or configure the real public URLs before registering.
 After Agentory indexes the registration, find and inspect the agent in [Agentory staging](https://staging.agentory.xyz).
 The Neo X T4 explorer confirms transactions; Agentory staging confirms that the agent has been indexed for discovery.
 
-Compact metadata also sets \`active: false\`, \`x402Support: false\`, and \`supportedTrust: []\`.
+${userUri ? "Your user-managed metadata is responsible for all ERC-8004 fields and the exact registration reference." : "Compact metadata also sets `active: false`, `x402Support: false`, and `supportedTrust: []`."}
 
 ## 6. Verify
 
@@ -322,9 +326,9 @@ Compact metadata also sets \`active: false\`, \`x402Support: false\`, and \`supp
 npm run verify
 \`\`\`
 
-Reads \`ownerOf\`, \`tokenURI\`, and \`getAgentWallet\`, checks registration metadata (including \`services\`),
+Reads \`ownerOf\`, \`tokenURI\`, and \`getAgentWallet\`, ${userUri ? "checks that the on-chain URI matches the configured metadata URI exactly," : "checks registration metadata (including `services`),"}
 then writes secret-free \`registration-result.json\`.
-For HTTP(S) URIs it retrieves the metadata before validating the exact Neo X registration reference and service declarations.
+${userUri ? "User-provided URIs are verified for exact on-chain equality without fetching their contents." : "For HTTP(S) URIs it retrieves the metadata before validating the exact Neo X registration reference and service declarations."}
 
 ## ERC-8004 service endpoints
 

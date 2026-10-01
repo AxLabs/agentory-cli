@@ -1,3 +1,4 @@
+import { assertRegistrationMetadataUri } from "../metadata.js";
 import type { PublishedMetadata } from "../types.js";
 import type { MetadataStorage, PublishMetadataInput } from "./types.js";
 
@@ -11,13 +12,7 @@ export class UserUriMetadataStorage implements MetadataStorage {
     private readonly metadataUri: string;
 
     constructor(metadataUri: string) {
-        const uri = metadataUri.trim();
-        if (!uri || /\s/.test(uri)) {
-            throw new Error(
-                "metadataUri is required when metadataStorage is \"uri\". Provide the registration URI you already host."
-            );
-        }
-        this.metadataUri = uri;
+        this.metadataUri = assertRegistrationMetadataUri(metadataUri);
     }
 
     async publish(_input: PublishMetadataInput): Promise<PublishedMetadata> {

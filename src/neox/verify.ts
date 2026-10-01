@@ -52,6 +52,23 @@ export async function verifyOnChain(args: {
         throw new Error(`ownerOf(${args.state.agentId}) is ${owner}, expected ${args.expectedOwner}`);
     }
 
+    const userSuppliedUri =
+        args.state.metadataStorage?.backend === "uri" || args.config.metadataStorage === "uri";
+    if (userSuppliedUri) {
+        const expectedUri = args.state.agentURI ?? args.config.metadataUri;
+        if (!expectedUri || tokenURI !== expectedUri) {
+            throw new Error("On-chain tokenURI does not match the user-supplied registration metadata URI");
+        }
+        return {
+            agentId: args.state.agentId,
+            owner,
+            agentWallet,
+            tokenURI,
+            metadataStorage: args.state.metadataStorage ?? { backend: "uri", uri: tokenURI },
+            expectedServices: args.config.services ?? [],
+        };
+    }
+
     const decodedMetadata = tokenURI.startsWith("data:")
         ? decodeMetadataDataUri(tokenURI)
         : await readHttpMetadata(
