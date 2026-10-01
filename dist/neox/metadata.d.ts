@@ -10,4 +10,6 @@ export declare function buildRegistrationMetadata(config: Pick<AgentProjectConfi
 export declare function encodeMetadataDataUri(metadata: AgentRegistrationMetadata): string;
 export declare function decodeMetadataDataUri(uri: string): AgentRegistrationMetadata;
 export declare function metadataEquals(actual: AgentRegistrationMetadata, expected: AgentRegistrationMetadata): boolean;
+/** Identity of the exact JSON document sent to managed storage. */
+export declare function metadataContentHash(metadata: AgentRegistrationMetadata): string;
 export declare function registrationRefMatches(metadata: AgentRegistrationMetadata, agentId: bigint, registry: string, chainId?: number): boolean;

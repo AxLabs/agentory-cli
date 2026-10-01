@@ -12,7 +12,9 @@ export interface WizardAnswers {
     agentWallet: string;
     generatedPrivateKey?: string;
     x402Provider?: X402Provider;
-    metadataStorage?: "inline" | "neofs";
+    metadataStorage?: "managed" | "uri" | "inline" | "neofs";
+    /** Exact registration URI when metadataStorage is "uri". */
+    metadataUri?: string;
     skills?: string[];
     domains?: string[];
     /** Public agent-card URL for ERC-8004 A2A service metadata (Neo X). */
@@ -24,4 +26,13 @@ export interface WizardAnswers {
 }
 export { isSolanaChain } from "./config-solana.js";
 export declare const hasFeature: (answers: WizardAnswers, feature: "a2a" | "mcp" | "x402") => boolean;
+/** Normal wizard storage choices. Legacy inline and direct NeoFS stay available to config and tests. */
+export declare const METADATA_STORAGE_CHOICES: readonly [{
+    readonly name: "Managed by Agentory (recommended)";
+    readonly value: "managed";
+}, {
+    readonly name: "Use my own URI";
+    readonly value: "uri";
+}];
+export declare const DEFAULT_METADATA_STORAGE: "managed";
 export declare function runWizard(): Promise<WizardAnswers>;

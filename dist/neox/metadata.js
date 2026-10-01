@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { agentRegistryCaip, NEOX_T4_CHAIN_ID, REGISTRATION_V1_TYPE } from "./constants.js";
 import { normalizeAgentServices } from "./services.js";
 const DATA_JSON_PREFIX = "data:application/json;base64,";
@@ -78,6 +79,10 @@ export function decodeMetadataDataUri(uri) {
 }
 export function metadataEquals(actual, expected) {
     return JSON.stringify(actual) === JSON.stringify(expected);
+}
+/** Identity of the exact JSON document sent to managed storage. */
+export function metadataContentHash(metadata) {
+    return createHash("sha256").update(JSON.stringify(metadata), "utf8").digest("hex");
 }
 export function registrationRefMatches(metadata, agentId, registry, chainId = NEOX_T4_CHAIN_ID) {
     const expected = agentRegistryCaip(registry, chainId);

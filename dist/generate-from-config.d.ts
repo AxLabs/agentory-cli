@@ -1,6 +1,6 @@
-import type { WizardAnswers } from "./wizard.js";
 import { type ChainKey, type TrustModel } from "./config.js";
 import { type SolanaChainKey } from "./config-solana.js";
+import { type WizardAnswers } from "./wizard.js";
 export interface GenerateConfigFile {
     projectDir: string;
     agentName: string;
@@ -13,7 +13,8 @@ export interface GenerateConfigFile {
     agentWallet?: string;
     generatedPrivateKey?: string;
     skipInstall?: boolean;
-    metadataStorage?: "inline" | "neofs";
+    metadataStorage?: "managed" | "uri" | "inline" | "neofs";
+    metadataUri?: string;
     a2aEndpoint?: string;
     mcpEndpoint?: string;
     oasfEndpoint?: string;

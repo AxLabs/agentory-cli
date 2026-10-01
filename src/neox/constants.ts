@@ -13,6 +13,12 @@ export const NEOX_T4_RPC_URL = "https://neoxt4seed1.ngd.network";
 export const NEOX_T4_EXPLORER_URL = "https://xt4scan.ngd.network";
 export const NEOX_T4_FAUCET_URL = "https://neoxfaucet.ngd.network/";
 
+/** Path appended to the configured Agentory API origin. The origin is not inferred. */
+export const MANAGED_METADATA_PATH = "/api/registration-metadata";
+
+/** Public NeoFS REST read gateway. Not a write credential and not required configuration. */
+export const DEFAULT_NEOFS_PUBLIC_READ_GATEWAY = "https://rest.fs.neo.org";
+
 export const NEOX_T4_NATIVE_CURRENCY = {
     name: "GAS",
     symbol: "GAS",

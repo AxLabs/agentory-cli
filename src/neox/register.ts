@@ -6,9 +6,11 @@ import { getNeoxFees } from "./fees.js";
 import {
     buildRegistrationMetadata,
     decodeMetadataDataUri,
+    metadataContentHash,
     metadataEquals,
     parseAgentId,
 } from "./metadata.js";
+import { parseCanonicalNeofsAgentUri } from "./storage/neofs-uri.js";
 import { formatPreflight, runPreflight } from "./preflight.js";
 import {
     hasMinted,
@@ -41,7 +43,8 @@ export interface RegisterDeps {
 export function canReuseMetadataPublication(
     state: RegistrationState,
     metadata: AgentRegistrationMetadata,
-    configuredBackend: MetadataStorageBackend
+    configuredBackend: MetadataStorageBackend,
+    expectedUri?: string
 ): boolean {
     if (
         !state.metadata ||
@@ -54,6 +57,10 @@ export function canReuseMetadataPublication(
         return false;
     }
 
+    if (configuredBackend === "uri" && state.agentURI !== expectedUri) {
+        return false;
+    }
+
     if (state.metadataStorage.backend === "inline") {
         try {
             return metadataEquals(decodeMetadataDataUri(state.agentURI), metadata);
@@ -62,11 +69,30 @@ export function canReuseMetadataPublication(
         }
     }
 
+    if (state.metadataStorage.backend === "managed") {
+        const parsed = parseCanonicalNeofsAgentUri(state.agentURI);
+        return Boolean(
+            parsed &&
+            state.metadataStorage.containerId === parsed.containerId &&
+            state.metadataStorage.objectId === parsed.objectId &&
+            state.metadataStorage.contentHash === metadataContentHash(metadata) &&
+            state.agentURI === `neofs:${parsed.containerId}/${parsed.objectId}`
+        );
+    }
+
     return true;
 }
 
+function configuredBackendOf(deps: RegisterDeps): MetadataStorageBackend {
+    return deps.config.metadataStorage ?? "inline";
+}
+
+function expectedPublicationUri(deps: RegisterDeps): string | undefined {
+    return configuredBackendOf(deps) === "uri" ? deps.config.metadataUri : undefined;
+}
+
 function storageForPublication(deps: RegisterDeps): MetadataStorage {
-    const configuredBackend = deps.config.metadataStorage ?? "inline";
+    const configuredBackend = configuredBackendOf(deps);
     if (deps.storage && deps.storage.backend !== configuredBackend) {
         throw new Error(
             `Configured metadataStorage is "${configuredBackend}", but the provided storage backend is "${deps.storage.backend}"`
@@ -75,6 +101,16 @@ function storageForPublication(deps: RegisterDeps): MetadataStorage {
     if (configuredBackend === "neofs" && !deps.storage) {
         throw new Error(
             "NeoFS metadata storage dependency is required when metadataStorage is \"neofs\""
+        );
+    }
+    if (configuredBackend === "managed" && !deps.storage) {
+        throw new Error(
+            "Managed metadata storage is required when metadataStorage is \"managed\""
+        );
+    }
+    if (configuredBackend === "uri" && !deps.storage) {
+        throw new Error(
+            "A user-provided URI is required when metadataStorage is \"uri\""
         );
     }
     return deps.storage ?? new InlineMetadataStorage();
@@ -136,7 +172,8 @@ export async function reconcilePending(
     const publicationIsCurrent = canReuseMetadataPublication(
         { ...state, agentURI: updated.newURI },
         intendedMetadata,
-        deps.config.metadataStorage ?? "inline"
+        configuredBackendOf(deps),
+        expectedPublicationUri(deps)
     );
     return persistUriSet(deps.projectDir, state, {
         agentURI: updated.newURI,
@@ -219,7 +256,8 @@ export async function registerOrResume(deps: RegisterDeps, state: RegistrationSt
             !canReuseMetadataPublication(
                 current,
                 metadata,
-                deps.config.metadataStorage ?? "inline"
+                configuredBackendOf(deps),
+                expectedPublicationUri(deps)
             )
         ) {
             throw new Error(
@@ -232,7 +270,22 @@ export async function registerOrResume(deps: RegisterDeps, state: RegistrationSt
         return current;
     }
 
-    if (!hasMinted(current) && deps.config.metadataStorage === "neofs") {
+    const publicationRequired =
+        !isComplete(current) &&
+        (!metadata ||
+            !canReuseMetadataPublication(
+                current,
+                metadata,
+                configuredBackendOf(deps),
+                expectedPublicationUri(deps)
+            ));
+    if (
+        publicationRequired &&
+        (deps.config.metadataStorage === "neofs" ||
+            deps.config.metadataStorage === "managed" ||
+            deps.config.metadataStorage === "uri")
+    ) {
+        // Resolve storage before minting and before a resumed upload.
         storageForPublication(deps);
     }
 
@@ -266,7 +319,8 @@ export async function registerOrResume(deps: RegisterDeps, state: RegistrationSt
             !canReuseMetadataPublication(
                 current,
                 metadata,
-                deps.config.metadataStorage ?? "inline"
+                configuredBackendOf(deps),
+                expectedPublicationUri(deps)
             )
         ) {
             const storage = storageForPublication(deps);

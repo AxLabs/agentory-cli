@@ -26,16 +26,20 @@ export interface AgentProjectConfig {
     registry?: Address;
     rpcUrl?: string;
     metadataStorage?: MetadataStorageBackend;
+    /** Exact user-supplied registration URI when `metadataStorage` is `"uri"`. */
+    metadataUri?: string;
     services?: AgentService[];
 }
 
-export type MetadataStorageBackend = "inline" | "neofs";
+export type MetadataStorageBackend = "managed" | "uri" | "inline" | "neofs";
 
 export interface PublishedMetadata {
     uri: string;
     backend: MetadataStorageBackend;
     containerId?: string;
     objectId?: string;
+    /** SHA-256 of the canonical registration JSON stored for this URI. */
+    contentHash?: string;
 }
 
 export interface RegistrationRecord {

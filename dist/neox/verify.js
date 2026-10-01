@@ -2,6 +2,7 @@ import { getAddress } from "viem";
 import { IDENTITY_REGISTRY_ABI } from "./abi.js";
 import { buildRegistrationMetadata, decodeMetadataDataUri, metadataEquals, parseAgentId, registrationRefMatches, } from "./metadata.js";
 import { servicesMetadataEquals } from "./services.js";
+import { neofsObjectReadUrl } from "./storage/neofs-uri.js";
 import { readHttpMetadata } from "./storage/neofs.js";
 export async function verifyOnChain(args) {
     if (args.state.agentId === undefined) {
@@ -33,7 +34,9 @@ export async function verifyOnChain(args) {
     }
     const decodedMetadata = tokenURI.startsWith("data:")
         ? decodeMetadataDataUri(tokenURI)
-        : await readHttpMetadata(tokenURI, args.fetchImpl);
+        : await readHttpMetadata(tokenURI.startsWith("neofs:")
+            ? neofsObjectReadUrl(tokenURI, args.neofsPublicGateway)
+            : tokenURI, args.fetchImpl);
     const expected = buildRegistrationMetadata(args.config, agentId, args.registry, args.state.chainId);
     const expectedServices = expected.services;
     const servicesMatch = servicesMetadataEquals(decodedMetadata.services, expectedServices);
@@ -60,7 +63,11 @@ export async function verifyOnChain(args) {
         metadataMatches,
         registrationRefMatches: registrationRefMatchesResult,
         metadataStorage: args.state.metadataStorage ?? {
-            backend: tokenURI.startsWith("data:") ? "inline" : "neofs",
+            backend: tokenURI.startsWith("data:")
+                ? "inline"
+                : tokenURI.startsWith("neofs:")
+                    ? "managed"
+                    : "neofs",
             uri: tokenURI,
         },
         servicesMatch,

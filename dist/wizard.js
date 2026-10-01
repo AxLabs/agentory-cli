@@ -33,6 +33,12 @@ function getX402Providers(chainKey) {
     const chainConfig = CHAINS[chainKey];
     return chainConfig.x402Providers ?? [];
 }
+/** Normal wizard storage choices. Legacy inline and direct NeoFS stay available to config and tests. */
+export const METADATA_STORAGE_CHOICES = [
+    { name: "Managed by Agentory (recommended)", value: "managed" },
+    { name: "Use my own URI", value: "uri" },
+];
+export const DEFAULT_METADATA_STORAGE = "managed";
 function getDefaultX402Provider(chainKey) {
     if (!chainKey || isSolanaChain(chainKey))
         return undefined;
@@ -117,13 +123,24 @@ export async function runWizard() {
         {
             type: "list",
             name: "metadataStorage",
-            message: "Registration metadata storage (Neo X T4):",
-            choices: [
-                { name: "Inline data URI (no external storage required)", value: "inline" },
-                { name: "NeoFS REST gateway (requires gateway and container configuration)", value: "neofs" },
-            ],
-            default: "inline",
+            message: "Registration metadata storage:",
+            choices: [...METADATA_STORAGE_CHOICES],
+            default: DEFAULT_METADATA_STORAGE,
             when: (ans) => ans.chain === "neox-t4",
+        },
+        {
+            type: "input",
+            name: "metadataUri",
+            message: "Registration metadata URI you already host:",
+            when: (ans) => ans.chain === "neox-t4" && ans.metadataStorage === "uri",
+            validate: (input) => {
+                const value = input.trim();
+                if (!value)
+                    return "Enter the registration metadata URI";
+                if (/\s/.test(value))
+                    return "The URI cannot contain whitespace";
+                return true;
+            },
         },
         {
             type: "checkbox",
@@ -280,7 +297,8 @@ export async function runWizard() {
         agentWallet,
         generatedPrivateKey,
         x402Provider,
-        metadataStorage: answers.metadataStorage ?? "inline",
+        metadataStorage: answers.metadataStorage ?? (isNeoxChain(answers.chain) ? DEFAULT_METADATA_STORAGE : "inline"),
+        metadataUri: answers.metadataUri?.trim() || undefined,
         // Default to false if A2A not selected (question was skipped)
         a2aStreaming: answers.a2aStreaming ?? false,
         a2aEndpoint: answers.a2aEndpoint,

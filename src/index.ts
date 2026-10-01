@@ -71,6 +71,11 @@ function printNextSteps(answers: WizardAnswers, isSolana: boolean, neox: boolean
         if (answers.metadataStorage === "neofs") {
             console.log(chalk.gray("   - Set NEOFS_REST_GATEWAY, NEOFS_CONTAINER_ID, and NEOFS_PUBLIC_GATEWAY"));
             console.log(chalk.gray("   - Set NEOFS_BEARER_TOKEN only when the container requires it"));
+        } else if (answers.metadataStorage === "managed") {
+            console.log(chalk.gray("   - Managed NeoFS storage needs no NeoFS account, container, gateway, or upload token"));
+            console.log(chalk.gray("   - Set AGENTORY_API_BASE_URL to the Agentory API origin (required; no default)"));
+        } else if (answers.metadataStorage === "uri") {
+            console.log(chalk.gray("   - The metadata URI in src/agent-config.ts is registered as-is"));
         }
         console.log(chalk.gray("   - Pinata and OpenAI are not required for Neo X Web3 registration"));
     } else {

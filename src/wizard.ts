@@ -42,7 +42,9 @@ export interface WizardAnswers {
     agentWallet: string;
     generatedPrivateKey?: string;
     x402Provider?: X402Provider;
-    metadataStorage?: "inline" | "neofs";
+    metadataStorage?: "managed" | "uri" | "inline" | "neofs";
+    /** Exact registration URI when metadataStorage is "uri". */
+    metadataUri?: string;
     // OASF taxonomy (optional) - https://github.com/8004-org/oasf
     skills?: string[];
     domains?: string[];
@@ -73,7 +75,9 @@ interface RawAnswers {
     chain: ChainKey | SolanaChainKey;
     trustModels: TrustModel[];
     x402Provider?: X402Provider;
-    metadataStorage?: "inline" | "neofs";
+    metadataStorage?: "managed" | "uri" | "inline" | "neofs";
+    /** Exact registration URI when metadataStorage is "uri". */
+    metadataUri?: string;
     a2aEndpoint?: string;
     mcpEndpoint?: string;
     oasfSkills?: string;
@@ -86,6 +90,14 @@ function getX402Providers(chainKey?: ChainKey | SolanaChainKey): X402Provider[] 
     const chainConfig = CHAINS[chainKey as ChainKey];
     return chainConfig.x402Providers ?? [];
 }
+
+/** Normal wizard storage choices. Legacy inline and direct NeoFS stay available to config and tests. */
+export const METADATA_STORAGE_CHOICES = [
+    { name: "Managed by Agentory (recommended)", value: "managed" as const },
+    { name: "Use my own URI", value: "uri" as const },
+] as const;
+
+export const DEFAULT_METADATA_STORAGE = "managed" as const;
 
 function getDefaultX402Provider(chainKey?: ChainKey | SolanaChainKey): X402Provider | undefined {
     if (!chainKey || isSolanaChain(chainKey)) return undefined;
@@ -172,13 +184,22 @@ export async function runWizard(): Promise<WizardAnswers> {
         {
             type: "list",
             name: "metadataStorage",
-            message: "Registration metadata storage (Neo X T4):",
-            choices: [
-                { name: "Inline data URI (no external storage required)", value: "inline" },
-                { name: "NeoFS REST gateway (requires gateway and container configuration)", value: "neofs" },
-            ],
-            default: "inline",
+            message: "Registration metadata storage:",
+            choices: [...METADATA_STORAGE_CHOICES],
+            default: DEFAULT_METADATA_STORAGE,
             when: (ans: Partial<RawAnswers>) => ans.chain === "neox-t4",
+        },
+        {
+            type: "input",
+            name: "metadataUri",
+            message: "Registration metadata URI you already host:",
+            when: (ans: Partial<RawAnswers>) => ans.chain === "neox-t4" && ans.metadataStorage === "uri",
+            validate: (input: string) => {
+                const value = input.trim();
+                if (!value) return "Enter the registration metadata URI";
+                if (/\s/.test(value)) return "The URI cannot contain whitespace";
+                return true;
+            },
         },
         {
             type: "checkbox",
@@ -344,7 +365,8 @@ export async function runWizard(): Promise<WizardAnswers> {
         agentWallet,
         generatedPrivateKey,
         x402Provider,
-        metadataStorage: answers.metadataStorage ?? "inline",
+        metadataStorage: answers.metadataStorage ?? (isNeoxChain(answers.chain) ? DEFAULT_METADATA_STORAGE : "inline"),
+        metadataUri: answers.metadataUri?.trim() || undefined,
         // Default to false if A2A not selected (question was skipped)
         a2aStreaming: answers.a2aStreaming ?? false,
         a2aEndpoint: answers.a2aEndpoint,

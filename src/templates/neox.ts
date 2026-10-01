@@ -138,11 +138,17 @@ export function generateNeoxPackageJson(answers: WizardAnswers): string {
 export function generateNeoxEnvExample(_answers: WizardAnswers, chain: ChainConfig): string {
     const storage = _answers.metadataStorage === "neofs"
         ? `
-# NeoFS publication. The bearer token is optional for public-write containers.
+# Direct NeoFS publication. The bearer token is optional for public-write containers.
 NEOFS_REST_GATEWAY=
 NEOFS_CONTAINER_ID=
 NEOFS_PUBLIC_GATEWAY=
 NEOFS_BEARER_TOKEN=
+`
+        : _answers.metadataStorage === "managed" || _answers.metadataStorage === undefined
+        ? `
+# Required for managed metadata. Agentory API origin only; there is no built-in default.
+# The client appends /api/registration-metadata. Do not put a NeoFS credential or the signing key here.
+AGENTORY_API_BASE_URL=
 `
         : "";
     return `# Secret-free example. Copy to .env locally; never commit keys.
@@ -180,8 +186,9 @@ export const AGENT_PROJECT_CONFIG: AgentProjectConfig = {
   image: ${JSON.stringify(image)},
   projectId: ${JSON.stringify(projectId)},
   registry: NEOX_T4_IDENTITY_REGISTRY,
-  metadataStorage: ${JSON.stringify(answers.metadataStorage ?? "inline")},
-${servicesBlock}};
+  metadataStorage: ${JSON.stringify(answers.metadataStorage ?? "managed")},
+${answers.metadataStorage === "uri" ? `  metadataUri: ${JSON.stringify(answers.metadataUri ?? "")},
+` : ""}${servicesBlock}};
 `;
 }
 
@@ -211,7 +218,10 @@ runNeoxRegistrationCli(AGENT_PROJECT_CONFIG).catch((error: unknown) => {
 export function generateNeoxReadme(answers: WizardAnswers, chain: ChainConfig): string {
     const hasA2A = hasFeature(answers, "a2a");
     const hasMCP = hasFeature(answers, "mcp");
-    const neofs = answers.metadataStorage === "neofs";
+    const storage = answers.metadataStorage ?? "managed";
+    const neofs = storage === "neofs";
+    const managed = storage === "managed";
+    const userUri = storage === "uri";
     const hasOasfTaxonomy =
         (answers.skills?.length ?? 0) > 0 || (answers.domains?.length ?? 0) > 0;
     return `# ${answers.agentName}
@@ -247,7 +257,17 @@ export RPC_URL=${NEOX_T4_RPC_URL}
 
 The register script derives the public address locally and never prints the key.
 
-${neofs ? `This project publishes metadata to NeoFS. Configure the existing container and gateways in \`.env\`:
+${managed ? `Registration metadata is stored by Agentory on NeoFS. You do not create a NeoFS account, fund a container, choose a gateway, or provide an upload token. The signing key stays on this machine and is not sent to Agentory.
+
+Set \`AGENTORY_API_BASE_URL\` to the Agentory API origin before \`npm run register\`. The client uses that origin only and appends \`/api/registration-metadata\`. It does not infer the origin from the chain, and it does not infer the chain from the origin. Registration fails before minting when the variable is missing.
+
+Staging/development example, for Neo X T4:
+
+\`\`\`env
+AGENTORY_API_BASE_URL=https://staging.agentory.xyz
+\`\`\`
+` : userUri ? `This project registers the metadata URI already in \`src/agent-config.ts\`. The CLI does not upload that document and does not read \`AGENTORY_API_BASE_URL\`. You are responsible for hosting the document, keeping it publicly readable, and changing the URI when the document changes.
+` : neofs ? `This project publishes metadata to NeoFS. Configure the existing container and gateways in \`.env\`:
 
 \`\`\`env
 NEOFS_REST_GATEWAY=https://your-rest-gateway.example
@@ -284,7 +304,7 @@ npm run register
 This:
 
 1. Calls parameterless \`register()\` and decodes \`Registered\` from that receipt (agent ID 0 is valid).
-2. ${neofs ? "Uploads compact registration-v1 JSON to NeoFS, reads it back through the public gateway, and persists the object IDs." : "Encodes compact registration-v1 metadata as a `data:application/json;base64,` URI."}
+2. ${managed ? "Sends the registration-v1 JSON to Agentory after minting and uses the returned `neofs:<containerId>/<objectId>` URI unchanged." : userUri ? "Uses the configured metadata URI unchanged and does not upload it." : neofs ? "Uploads compact registration-v1 JSON to NeoFS, reads it back through the public gateway, and persists the object IDs." : "Encodes compact registration-v1 metadata as a `data:application/json;base64,` URI."}
 3. Calls \`setAgentURI(agentId, uri)\`.
 4. Persists transaction hashes immediately and resumes metadata publication if minting already succeeded.
 5. Refuses to mint a second identity once this project has completed.

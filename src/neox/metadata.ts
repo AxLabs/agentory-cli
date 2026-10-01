@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { agentRegistryCaip, NEOX_T4_CHAIN_ID, REGISTRATION_V1_TYPE } from "./constants.js";
 import { normalizeAgentServices } from "./services.js";
 import type { AgentProjectConfig, AgentRegistrationMetadata } from "./types.js";
@@ -92,6 +93,11 @@ export function decodeMetadataDataUri(uri: string): AgentRegistrationMetadata {
 
 export function metadataEquals(actual: AgentRegistrationMetadata, expected: AgentRegistrationMetadata): boolean {
     return JSON.stringify(actual) === JSON.stringify(expected);
+}
+
+/** Identity of the exact JSON document sent to managed storage. */
+export function metadataContentHash(metadata: AgentRegistrationMetadata): string {
+    return createHash("sha256").update(JSON.stringify(metadata), "utf8").digest("hex");
 }
 
 export function registrationRefMatches(

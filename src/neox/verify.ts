@@ -9,6 +9,7 @@ import {
 } from "./metadata.js";
 import { servicesMetadataEquals } from "./services.js";
 import type { AgentProjectConfig, RegistrationState, VerificationResult } from "./types.js";
+import { neofsObjectReadUrl } from "./storage/neofs-uri.js";
 import { readHttpMetadata } from "./storage/neofs.js";
 import type { FetchLike } from "./storage/types.js";
 
@@ -19,6 +20,7 @@ export async function verifyOnChain(args: {
     config: AgentProjectConfig;
     expectedOwner: Address;
     fetchImpl?: FetchLike;
+    neofsPublicGateway?: string;
 }): Promise<VerificationResult> {
     if (args.state.agentId === undefined) {
         throw new Error("Cannot verify before minting an agentId");
@@ -52,7 +54,12 @@ export async function verifyOnChain(args: {
 
     const decodedMetadata = tokenURI.startsWith("data:")
         ? decodeMetadataDataUri(tokenURI)
-        : await readHttpMetadata(tokenURI, args.fetchImpl);
+        : await readHttpMetadata(
+              tokenURI.startsWith("neofs:")
+                  ? neofsObjectReadUrl(tokenURI, args.neofsPublicGateway)
+                  : tokenURI,
+              args.fetchImpl
+          );
     const expected = buildRegistrationMetadata(
         args.config,
         agentId,
@@ -90,7 +97,11 @@ export async function verifyOnChain(args: {
         metadataMatches,
         registrationRefMatches: registrationRefMatchesResult,
         metadataStorage: args.state.metadataStorage ?? {
-            backend: tokenURI.startsWith("data:") ? "inline" : "neofs",
+            backend: tokenURI.startsWith("data:")
+                ? "inline"
+                : tokenURI.startsWith("neofs:")
+                    ? "managed"
+                    : "neofs",
             uri: tokenURI,
         },
         servicesMatch,

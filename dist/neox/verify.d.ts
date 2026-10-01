@@ -8,4 +8,5 @@ export declare function verifyOnChain(args: {
     config: AgentProjectConfig;
     expectedOwner: Address;
     fetchImpl?: FetchLike;
+    neofsPublicGateway?: string;
 }): Promise<VerificationResult>;

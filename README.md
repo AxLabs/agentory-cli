@@ -110,11 +110,11 @@ Storage behavior is currently target-specific:
 
 | Target | Current behavior |
 | --- | --- |
-| Neo X T4 | Inline data URI by default. A direct NeoFS integration is available as an advanced acceptance/infrastructure path and requires an existing container and gateway configuration. |
+| Neo X T4 | Managed by Agentory (recommended). Agentory stores the registration document on NeoFS and the CLI sets the returned `neofs:<containerId>/<objectId>` URI with the user's wallet. `Use my own URI` registers a URI the user already hosts. Direct NeoFS and inline data URIs remain compatibility paths and are not wizard choices. |
 | Other EVM targets | Registration metadata is uploaded to IPFS through Pinata and requires `PINATA_JWT`. |
 | Solana groundwork | Uses Pinata/IPFS, but Solana is not a supported Agentory CLI target. |
 
-The direct NeoFS path is not the intended production managed-storage experience. Do not expose its container credentials or bearer token to end users or generated applications outside the controlled acceptance path.
+Managed Neo X registration does not ask for a NeoFS account, container, gateway, or upload token, and it does not send the EVM signing key to Agentory. It requires `AGENTORY_API_BASE_URL` at registration time and does not select that origin from the chain. The direct NeoFS path is an advanced acceptance path. Do not expose its container credentials or bearer token to end users.
 
 ### Other EVM targets
 
