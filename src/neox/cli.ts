@@ -130,7 +130,13 @@ export async function runNeoxRegistrationCli(
                 registry,
                 projectDir,
                 config,
-                storage: needsPublication ? createMetadataStorage(config) : undefined,
+                storage: needsPublication
+                    ? createMetadataStorage(config, fetch, {
+                          signerAddress: account.address,
+                          signMessage: (message) =>
+                              walletClient.signMessage({ account, message }),
+                      })
+                    : undefined,
             },
             state
         );
