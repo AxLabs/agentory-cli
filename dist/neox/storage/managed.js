@@ -3,7 +3,7 @@ import { metadataContentHash } from "../metadata.js";
 import { parseCanonicalNeofsAgentUri } from "./neofs-uri.js";
 export const environmentManagedMetadataProtection = {
     apply() {
-        // No client credential until the API's CLI protection mechanism is selected.
+        // Used only when the Agentory API has MANAGED_UPLOAD_AUTH_DISABLED (non-production).
     },
 };
 export class ManagedMetadataError extends Error {
@@ -92,7 +92,12 @@ export class ManagedMetadataStorage {
             accept: "application/json",
             "content-type": "application/json",
         });
-        await this.protection.apply(headers);
+        await this.protection.apply(headers, {
+            contentHash: metadataContentHash(input.metadata),
+            chainId: input.chainId,
+            registry: input.registry,
+            agentId: input.agentId,
+        });
         const secrets = headerSecrets(headers, this.redactedValues);
         const url = managedUploadUrl(this.apiBaseUrl);
         let response;

@@ -2,6 +2,10 @@ import { assertRegistrationMetadataUri } from "../metadata.js";
 import type { AgentProjectConfig, MetadataStorageBackend } from "../types.js";
 import { MANAGED_URI_GAS_ESTIMATE } from "./neofs-uri.js";
 import { InlineMetadataStorage } from "./inline.js";
+import {
+    createWalletManagedMetadataProtection,
+    managedUploadAuthDisabled,
+} from "./managed-upload-auth.js";
 import { ManagedMetadataStorage, resolveAgentoryApiBaseUrl } from "./managed.js";
 import { NeofsMetadataStorage, neofsPublicUri, validateNeofsStorageConfig } from "./neofs.js";
 import type { FetchLike, MetadataStorage } from "./types.js";
@@ -11,6 +15,7 @@ export * from "./types.js";
 export * from "./inline.js";
 export * from "./neofs.js";
 export * from "./managed.js";
+export * from "./managed-upload-auth.js";
 export * from "./user-uri.js";
 
 const BACKENDS: readonly MetadataStorageBackend[] = ["managed", "uri", "inline", "neofs"];
@@ -25,16 +30,42 @@ export function metadataBackend(config: AgentProjectConfig): MetadataStorageBack
     return backend;
 }
 
+export interface CreateMetadataStorageOptions {
+    fetchImpl?: FetchLike;
+    signerAddress?: string;
+    signMessage?: (message: string) => Promise<string>;
+}
+
 export function createMetadataStorage(
     config: AgentProjectConfig,
-    fetchImpl: FetchLike = fetch
+    fetchImpl: FetchLike = fetch,
+    options: CreateMetadataStorageOptions = {}
 ): MetadataStorage {
     const backend = metadataBackend(config);
     if (backend === "inline") return new InlineMetadataStorage();
     if (backend === "managed") {
+        const apiBaseUrl = resolveAgentoryApiBaseUrl();
+        let protection;
+        if (!managedUploadAuthDisabled()) {
+            if (!options.signerAddress || !options.signMessage) {
+                throw new Error(
+                    "Managed Agentory uploads require a connected wallet signer when authorization is enabled."
+                );
+            }
+            protection = createWalletManagedMetadataProtection({
+                apiBaseUrl,
+                fetchImpl: options.fetchImpl ?? fetchImpl,
+                signerAddress: options.signerAddress,
+                signMessage: options.signMessage,
+            });
+        }
         return new ManagedMetadataStorage(
-            { apiBaseUrl: process.env.AGENTORY_API_BASE_URL, fetchImpl },
-            fetchImpl
+            {
+                apiBaseUrl,
+                fetchImpl: options.fetchImpl ?? fetchImpl,
+                protection,
+            },
+            options.fetchImpl ?? fetchImpl
         );
     }
     if (backend === "uri") {

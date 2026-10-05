@@ -707,6 +707,9 @@ describe("managed API origin configuration", () => {
 
     it("accepts an explicit staging HTTPS origin and a localhost HTTP origin", async () => {
         const metadata = buildRegistrationMetadata(CONFIG, 7n, REGISTRY);
+        const previousAuthDisabled = process.env.MANAGED_UPLOAD_AUTH_DISABLED;
+        process.env.MANAGED_UPLOAD_AUTH_DISABLED = "true";
+        try {
         await withApiBaseUrl("https://staging.agentory.xyz/ignored-path", async () => {
             const fetchImpl = vi.fn().mockResolvedValue(successResponse());
             const storage = createMetadataStorage(CONFIG, fetchImpl);
@@ -742,5 +745,9 @@ describe("managed API origin configuration", () => {
         await withApiBaseUrl("http://localhost:4010", async () => {
             expect(resolveAgentoryApiBaseUrl()).toBe("http://localhost:4010");
         });
+        } finally {
+            if (previousAuthDisabled === undefined) delete process.env.MANAGED_UPLOAD_AUTH_DISABLED;
+            else process.env.MANAGED_UPLOAD_AUTH_DISABLED = previousAuthDisabled;
+        }
     });
 });

@@ -6,8 +6,14 @@ export type ManagedMetadataFailureClass = "validation" | "storage" | "security" 
  * Development and staging currently accept the registration document with no client credential.
  * Implementations must not attach a NeoFS write secret or an EVM signing key.
  */
+export interface ManagedUploadProtectionContext {
+    contentHash: string;
+    chainId: number;
+    registry: string;
+    agentId: bigint;
+}
 export interface ManagedMetadataRequestProtection {
-    apply(headers: Headers): void | Promise<void>;
+    apply(headers: Headers, context: ManagedUploadProtectionContext): void | Promise<void>;
 }
 export declare const environmentManagedMetadataProtection: ManagedMetadataRequestProtection;
 export declare class ManagedMetadataError extends Error {

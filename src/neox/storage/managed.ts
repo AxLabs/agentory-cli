@@ -11,13 +11,20 @@ export type ManagedMetadataFailureClass = "validation" | "storage" | "security" 
  * Development and staging currently accept the registration document with no client credential.
  * Implementations must not attach a NeoFS write secret or an EVM signing key.
  */
+export interface ManagedUploadProtectionContext {
+    contentHash: string;
+    chainId: number;
+    registry: string;
+    agentId: bigint;
+}
+
 export interface ManagedMetadataRequestProtection {
-    apply(headers: Headers): void | Promise<void>;
+    apply(headers: Headers, context: ManagedUploadProtectionContext): void | Promise<void>;
 }
 
 export const environmentManagedMetadataProtection: ManagedMetadataRequestProtection = {
     apply() {
-        // No client credential until the API's CLI protection mechanism is selected.
+        // Used only when the Agentory API has MANAGED_UPLOAD_AUTH_DISABLED (non-production).
     },
 };
 
@@ -143,7 +150,12 @@ export class ManagedMetadataStorage implements MetadataStorage {
             accept: "application/json",
             "content-type": "application/json",
         });
-        await this.protection.apply(headers);
+        await this.protection.apply(headers, {
+            contentHash: metadataContentHash(input.metadata),
+            chainId: input.chainId,
+            registry: input.registry,
+            agentId: input.agentId,
+        });
         const secrets = headerSecrets(headers, this.redactedValues);
         const url = managedUploadUrl(this.apiBaseUrl);
 
