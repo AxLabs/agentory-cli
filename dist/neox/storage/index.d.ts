@@ -4,7 +4,13 @@ export * from "./types.js";
 export * from "./inline.js";
 export * from "./neofs.js";
 export * from "./managed.js";
+export * from "./managed-upload-auth.js";
 export * from "./user-uri.js";
 export declare function metadataBackend(config: AgentProjectConfig): MetadataStorageBackend;
-export declare function createMetadataStorage(config: AgentProjectConfig, fetchImpl?: FetchLike): MetadataStorage;
+export interface CreateMetadataStorageOptions {
+    fetchImpl?: FetchLike;
+    signerAddress?: string;
+    signMessage?: (message: string) => Promise<string>;
+}
+export declare function createMetadataStorage(config: AgentProjectConfig, fetchImpl?: FetchLike, options?: CreateMetadataStorageOptions): MetadataStorage;
 export declare function uriForStoragePreflight(config: AgentProjectConfig): string | undefined;

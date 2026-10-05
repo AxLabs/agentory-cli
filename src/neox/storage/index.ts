@@ -44,6 +44,7 @@ export function createMetadataStorage(
     const backend = metadataBackend(config);
     if (backend === "inline") return new InlineMetadataStorage();
     if (backend === "managed") {
+        const apiBaseUrl = resolveAgentoryApiBaseUrl();
         let protection;
         if (!managedUploadAuthDisabled()) {
             if (!options.signerAddress || !options.signMessage) {
@@ -52,7 +53,7 @@ export function createMetadataStorage(
                 );
             }
             protection = createWalletManagedMetadataProtection({
-                apiBaseUrl: process.env.AGENTORY_API_BASE_URL,
+                apiBaseUrl,
                 fetchImpl: options.fetchImpl ?? fetchImpl,
                 signerAddress: options.signerAddress,
                 signMessage: options.signMessage,
@@ -60,7 +61,7 @@ export function createMetadataStorage(
         }
         return new ManagedMetadataStorage(
             {
-                apiBaseUrl: process.env.AGENTORY_API_BASE_URL,
+                apiBaseUrl,
                 fetchImpl: options.fetchImpl ?? fetchImpl,
                 protection,
             },
