@@ -20,7 +20,7 @@ import {
     readGeneratedFile,
     fileExists,
     getNextPort,
-    cleanupTestOutput,
+    removeTestProject,
 } from './test-helpers.js';
 import type { ChainKey } from '../../dist/config.js';
 
@@ -30,6 +30,17 @@ export interface ChainTestConfig {
     x402Supported: boolean;
     x402Provider?: 'payai' | '4mica';
     isTestnet?: boolean; // For informational purposes
+}
+
+async function stopServerAndRemoveProject(
+    server: { stop: () => Promise<void> } | undefined,
+    projectDir: string | undefined,
+): Promise<void> {
+    try {
+        await server?.stop();
+    } finally {
+        await removeTestProject(projectDir);
+    }
 }
 
 /**
@@ -42,9 +53,10 @@ export function createChainTestSuite(config: ChainTestConfig) {
         // ================================================================
         describe('A2A Server (No Streaming)', () => {
             let projectDir: string;
-            let server: ServerProcess;
+            let server: ServerProcess | undefined;
             let client: A2ATestClient;
             let port: number;
+            let removableDir: string | undefined;
 
             beforeAll(async () => {
                 port = getNextPort();
@@ -54,6 +66,7 @@ export function createChainTestSuite(config: ChainTestConfig) {
                     a2aStreaming: false,
                     projectName: `${config.chainKey}-a2a-no-stream`,
                 });
+                removableDir = projectDir;
                 
                 await installDependencies(projectDir);
                 await enableMockMode(projectDir);
@@ -66,8 +79,8 @@ export function createChainTestSuite(config: ChainTestConfig) {
             }, 120000);
 
             afterAll(async () => {
-                await server?.stop();
-            });
+                await stopServerAndRemoveProject(server, removableDir);
+            }, 120000);
 
             it('should generate all required files', async () => {
                 expect(await fileExists(projectDir, 'src/a2a-server.ts')).toBe(true);
@@ -159,9 +172,10 @@ export function createChainTestSuite(config: ChainTestConfig) {
         // ================================================================
         describe('A2A Server (With Streaming)', () => {
             let projectDir: string;
-            let server: ServerProcess;
+            let server: ServerProcess | undefined;
             let client: A2ATestClient;
             let port: number;
+            let removableDir: string | undefined;
 
             beforeAll(async () => {
                 port = getNextPort();
@@ -171,6 +185,7 @@ export function createChainTestSuite(config: ChainTestConfig) {
                     a2aStreaming: true,
                     projectName: `${config.chainKey}-a2a-streaming`,
                 });
+                removableDir = projectDir;
                 
                 await installDependencies(projectDir);
                 await enableMockMode(projectDir);
@@ -183,8 +198,8 @@ export function createChainTestSuite(config: ChainTestConfig) {
             }, 120000);
 
             afterAll(async () => {
-                await server?.stop();
-            });
+                await stopServerAndRemoveProject(server, removableDir);
+            }, 120000);
 
             it('should generate streaming-enabled files', async () => {
                 expect(await fileExists(projectDir, 'src/a2a-server.ts')).toBe(true);
@@ -213,6 +228,7 @@ export function createChainTestSuite(config: ChainTestConfig) {
         // ================================================================
         describe('MCP Server', () => {
             let projectDir: string;
+            let removableDir: string | undefined;
 
             beforeAll(async () => {
                 projectDir = await generateTestAgent({
@@ -220,10 +236,15 @@ export function createChainTestSuite(config: ChainTestConfig) {
                     features: ['mcp'],
                     projectName: `${config.chainKey}-mcp`,
                 });
+                removableDir = projectDir;
                 
                 await installDependencies(projectDir);
                 await enableMockMode(projectDir);
                 await createTestEnv(projectDir, getNextPort());
+            }, 120000);
+
+            afterAll(async () => {
+                await removeTestProject(removableDir);
             }, 120000);
 
             it('should generate MCP server files', async () => {
@@ -317,8 +338,9 @@ export function createChainTestSuite(config: ChainTestConfig) {
         if (config.x402Supported) {
             describe('x402 Payments', () => {
                 let projectDir: string;
-                let server: ServerProcess;
+                let server: ServerProcess | undefined;
                 let port: number;
+                let removableDir: string | undefined;
 
                 beforeAll(async () => {
                     port = getNextPort();
@@ -328,6 +350,7 @@ export function createChainTestSuite(config: ChainTestConfig) {
                         x402Provider: config.x402Provider,
                         projectName: `${config.chainKey}-x402`,
                     });
+                    removableDir = projectDir;
                     
                     await installDependencies(projectDir);
                     await enableMockMode(projectDir);
@@ -338,8 +361,8 @@ export function createChainTestSuite(config: ChainTestConfig) {
                 }, 120000);
 
                 afterAll(async () => {
-                    await server?.stop();
-                });
+                    await stopServerAndRemoveProject(server, removableDir);
+                }, 120000);
 
                 it('should generate x402 dependencies', async () => {
                     const packageJson = JSON.parse(
@@ -429,8 +452,9 @@ export function createChainTestSuite(config: ChainTestConfig) {
         if (config.x402Supported && config.isTestnet) {
             describe('x402 Paid Request', () => {
                 let projectDir: string;
-                let server: ServerProcess;
+                let server: ServerProcess | undefined;
                 let port: number;
+                let removableDir: string | undefined;
                 const payerPrivateKey = process.env.TEST_PAYER_PRIVATE_KEY as Hex | undefined;
 
                 beforeAll(async () => {
@@ -446,6 +470,7 @@ export function createChainTestSuite(config: ChainTestConfig) {
                         x402Provider: config.x402Provider,
                         projectName: `${config.chainKey}-x402-paid`,
                     });
+                    removableDir = projectDir;
                     
                     await installDependencies(projectDir);
                     await enableMockMode(projectDir);
@@ -456,8 +481,8 @@ export function createChainTestSuite(config: ChainTestConfig) {
                 }, 120000);
 
                 afterAll(async () => {
-                    await server?.stop();
-                });
+                    await stopServerAndRemoveProject(server, removableDir);
+                }, 120000);
 
                 it('should return response when payment is valid', async () => {
                     if (!payerPrivateKey) {

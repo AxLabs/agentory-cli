@@ -13,11 +13,13 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { generateProject } from '../../dist/generator.js';
 import type { WizardAnswers } from '../../dist/wizard.js';
 import type { ChainKey, X402Provider } from '../../dist/config.js';
+import { TEST_BASE_DIR } from './test-output.js';
+
+export { TEST_BASE_DIR, cleanupTestOutput, removeTestProject } from './test-output.js';
 
 const execAsync = promisify(exec);
 
 // Test configuration
-export const TEST_BASE_DIR = path.join(process.cwd(), 'test-output');
 export const TEST_HOST = process.env.TEST_HOST || '127.0.0.1';
 export const getTestBaseUrl = (port: number) => `http://${TEST_HOST}:${port}`;
 
@@ -459,11 +461,4 @@ export async function fileExists(projectDir: string, filePath: string): Promise<
     } catch {
         return false;
     }
-}
-
-/**
- * Cleanup test output directory
- */
-export async function cleanupTestOutput(): Promise<void> {
-    await fs.rm(TEST_BASE_DIR, { recursive: true, force: true });
 }
