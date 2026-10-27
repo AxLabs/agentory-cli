@@ -23,10 +23,12 @@ export async function cleanupTestOutput(): Promise<void> {
 }
 
 /**
- * Remove one generated project. Refuses paths outside test-output/.
+ * Remove one generated project. Refuses the output root and any path outside
+ * test-output/. KEEP_TEST_OUTPUT=1 skips deletion of a valid project and does
+ * not bypass that check.
  */
 export async function removeTestProject(projectDir: string | undefined): Promise<void> {
-    if (!projectDir || keepTestOutput()) return;
+    if (!projectDir) return;
 
     const root = path.resolve(TEST_BASE_DIR);
     const resolved = path.resolve(projectDir);
@@ -35,5 +37,6 @@ export async function removeTestProject(projectDir: string | undefined): Promise
         throw new Error(`Refusing to remove a path outside ${root}`);
     }
 
+    if (keepTestOutput()) return;
     await fs.rm(resolved, { recursive: true, force: true });
 }
