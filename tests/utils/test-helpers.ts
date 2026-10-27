@@ -13,16 +13,20 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { generateProject } from '../../dist/generator.js';
 import type { WizardAnswers } from '../../dist/wizard.js';
 import type { ChainKey, X402Provider } from '../../dist/config.js';
+import { TEST_BASE_DIR } from './test-output.js';
+
+export { TEST_BASE_DIR, cleanupTestOutput, removeTestProject } from './test-output.js';
 
 const execAsync = promisify(exec);
 
 // Test configuration
-export const TEST_BASE_DIR = path.join(process.cwd(), 'test-output');
 export const TEST_HOST = process.env.TEST_HOST || '127.0.0.1';
 export const getTestBaseUrl = (port: number) => `http://${TEST_HOST}:${port}`;
 
-// Port allocation based on hash of project name to avoid conflicts
+// Port allocation based on hash of project name to avoid conflicts.
+// Blocks start at 20000 so a worker cannot bind a well-known port such as 6000.
 const usedPorts = new Set<number>();
+const PORT_BLOCK_BASE = 20000;
 const WORKER_PORT_BLOCK_SIZE = 2000;
 const WORKER_PORT_OFFSET = (() => {
     const raw =
@@ -36,13 +40,12 @@ const WORKER_PORT_OFFSET = (() => {
 
 // Get a unique port based on project name (deterministic)
 export function getPort(projectName: string): number {
-    // Generate a port from 4000-5999 based on hash (per worker block)
     let hash = 0;
     for (let i = 0; i < projectName.length; i++) {
         hash = ((hash << 5) - hash) + projectName.charCodeAt(i);
         hash = hash & hash;
     }
-    const blockBase = 4000 + WORKER_PORT_OFFSET;
+    const blockBase = PORT_BLOCK_BASE + WORKER_PORT_OFFSET;
     let port = blockBase + Math.abs(hash % WORKER_PORT_BLOCK_SIZE);
     
     // Find next available port if collision
@@ -59,7 +62,7 @@ export function getPort(projectName: string): number {
 
 // Legacy function for compatibility
 export function getNextPort(): number {
-    const blockBase = 4000 + WORKER_PORT_OFFSET;
+    const blockBase = PORT_BLOCK_BASE + WORKER_PORT_OFFSET;
     let port = blockBase + usedPorts.size;
     while (usedPorts.has(port)) {
         port++;
@@ -172,6 +175,18 @@ PORT=${port}
     await fs.writeFile(path.join(projectDir, '.env'), envContent);
 }
 
+function signalProcessGroup(pid: number, signal: NodeJS.Signals): void {
+    try {
+        process.kill(-pid, signal);
+    } catch {
+        try {
+            process.kill(pid, signal);
+        } catch {
+            // The process already exited.
+        }
+    }
+}
+
 /**
  * Server process manager
  */
@@ -191,6 +206,8 @@ export class ServerProcess {
                 cwd: this.projectDir,
                 env: { ...process.env, PORT: String(this.port) },
                 stdio: ['pipe', 'pipe', 'pipe'],
+                // Own process group so stop() can kill npx and the server it spawns.
+                detached: true,
             });
             
             this.process.stdout?.on('data', (data) => {
@@ -209,28 +226,41 @@ export class ServerProcess {
                 }
             });
             
-            // Poll for server readiness
+            // Poll for server readiness. The listen banner can arrive in the
+            // same moment the last attempt gives up, so keep probing after it.
             const checkServer = async () => {
-                for (let i = 0; i < 60; i++) { // Try for up to 30 seconds
-                    await new Promise(r => setTimeout(r, 500));
-                    
-                    // Check if process died
+                const started = Date.now();
+                let deadline = started + 45_000;
+                let extendedForBanner = false;
+                let lastHttp = "";
+                while (Date.now() < deadline) {
+                    await new Promise(r => setTimeout(r, 250));
+
                     if (this.process?.exitCode !== null) {
                         reject(new Error(`Server died. Output: ${this.output}`));
                         return;
                     }
-                    
+
+                    if (!extendedForBanner && this.output.includes("A2A Server running")) {
+                        extendedForBanner = true;
+                        deadline = Math.max(deadline, Date.now() + 10_000);
+                    }
+
                     try {
                         const res = await fetch(`${getTestBaseUrl(this.port)}/.well-known/agent-card.json`);
                         if (res.ok) {
                             resolve();
                             return;
                         }
+                        const body = await res.text();
+                        lastHttp = `HTTP ${res.status} ${body.slice(0, 200)}`;
                     } catch {
                         // Server not ready yet
                     }
                 }
-                reject(new Error(`Server failed to respond within 30s. Output: ${this.output}`));
+                reject(new Error(
+                    `Server failed to respond within ${Math.round((Date.now() - started) / 1000)}s. ${lastHttp} Output: ${this.output}`
+                ));
             };
             
             checkServer();
@@ -238,16 +268,18 @@ export class ServerProcess {
     }
     
     async stop(): Promise<void> {
-        if (this.process) {
-            this.process.kill('SIGTERM');
-            // Wait a bit for cleanup
-            await new Promise(resolve => setTimeout(resolve, 500));
-            // Force kill if still running
-            if (this.process.exitCode === null) {
-                this.process.kill('SIGKILL');
-            }
+        const child = this.process;
+        const pid = child?.pid;
+        if (!child || !pid) {
             this.process = null;
+            return;
         }
+        signalProcessGroup(pid, "SIGTERM");
+        await new Promise(resolve => setTimeout(resolve, 500));
+        if (child.exitCode === null) {
+            signalProcessGroup(pid, "SIGKILL");
+        }
+        this.process = null;
     }
     
     getOutput(): string {
@@ -459,11 +491,4 @@ export async function fileExists(projectDir: string, filePath: string): Promise<
     } catch {
         return false;
     }
-}
-
-/**
- * Cleanup test output directory
- */
-export async function cleanupTestOutput(): Promise<void> {
-    await fs.rm(TEST_BASE_DIR, { recursive: true, force: true });
 }

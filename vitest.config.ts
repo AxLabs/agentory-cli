@@ -10,9 +10,14 @@ export function createVitestConfig(include: string[], exclude: string[] = []) {
             include,
             exclude,
             setupFiles: ['tests/setup.ts'],
-            // Test files share generated output and port allocation state.
+            globalSetup: ['tests/global-setup.ts'],
+            // Files run one at a time so port allocation does not collide.
+            // Each suite deletes its generated project when it finishes.
             pool: 'threads',
             fileParallelism: false,
+            // Print the failing test and its error as soon as it happens.
+            // The default reporter holds that detail until the whole run ends.
+            reporters: ['default', './tests/failure-reporter.ts'],
         },
     });
 }

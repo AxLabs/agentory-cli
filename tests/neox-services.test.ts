@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterAll } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import type { Address } from "viem";
@@ -21,6 +21,7 @@ import type { AgentProjectConfig, RegistrationState } from "../src/neox/types.js
 import { verifyOnChain } from "../src/neox/verify.js";
 import type { WizardAnswers } from "../src/wizard.js";
 import { generateNeoxAgentConfig } from "../src/templates/neox.js";
+import { removeTestProject } from "./utils/test-output.js";
 
 const REGISTRY = NEOX_T4_IDENTITY_REGISTRY;
 const OWNER = "0x1111111111111111111111111111111111111111" as Address;
@@ -226,6 +227,10 @@ describe("Neo X registration services model", () => {
 
 describe("Neo X generator service declarations", () => {
     const outputRoot = path.join(process.cwd(), "test-output", "neox-services-generator");
+
+    afterAll(async () => {
+        await removeTestProject(outputRoot);
+    });
 
     it("emits no A2A/MCP services without features", async () => {
         const configSource = generateNeoxAgentConfig(baseAnswers());

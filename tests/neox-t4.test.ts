@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { execFile } from "node:child_process";
@@ -9,6 +9,7 @@ import { isNeoxChain, NEOX_T4_CHAIN_ID, NEOX_T4_IDENTITY_REGISTRY } from "../src
 import { IDENTITY_REGISTRY_ABI } from "../src/neox/abi.js";
 import type { WizardAnswers } from "../src/wizard.js";
 import { wizardAnswersFromConfig } from "../src/generate-from-config.js";
+import { removeTestProject } from "./utils/test-output.js";
 
 const execFileAsync = promisify(execFile);
 const OUTPUT_DIR = path.join(process.cwd(), "test-output", "neox-t4-generator");
@@ -139,6 +140,10 @@ describe("Neo X T4 generator routing", () => {
             metadataStorage: "neofs",
         }));
     });
+
+    afterAll(async () => {
+        await removeTestProject(OUTPUT_DIR);
+    }, 120000);
 
     it("generates a viem registration path instead of agent0-sdk", async () => {
         const projectDir = path.join(OUTPUT_DIR, "identity-fixture");
