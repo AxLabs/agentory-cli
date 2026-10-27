@@ -15,6 +15,9 @@ export function createVitestConfig(include: string[], exclude: string[] = []) {
             // Each suite deletes its generated project when it finishes.
             pool: 'threads',
             fileParallelism: false,
+            // Print the failing test and its error as soon as it happens.
+            // The default reporter holds that detail until the whole run ends.
+            reporters: ['default', './tests/failure-reporter.ts'],
         },
     });
 }
